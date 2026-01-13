@@ -1,0 +1,1288 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Multi-Armed Bandits</title>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --panel: #121a33;
+            --panel2: #0f1630;
+            --text: #e9eefc;
+            --muted: #a9b4d6;
+            --accent: #7aa2ff;
+            --good: #76f7c4;
+            --warn: #ffcc66;
+            --bad: #ff6b6b;
+            --line: #24305a;
+            --chip: #1a2450;
+            --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+            background: radial-gradient(1200px 700px at 20% 10%, #1a2550 0%, var(--bg) 60%) fixed;
+            color: var(--text);
+        }
+
+        header {
+            padding: 16px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+            background: rgba(0, 0, 0, .15);
+            position: sticky;
+            top: 0;
+            backdrop-filter: blur(6px);
+            z-index: 5;
+        }
+
+        header h1 {
+            font-size: 16px;
+            margin: 0;
+            letter-spacing: .2px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        header .tag {
+            font-size: 12px;
+            padding: 3px 8px;
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .04);
+            color: var(--muted);
+        }
+
+        .wrap {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 14px;
+            padding: 14px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 980px) {
+            .wrap {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .03));
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card h2 {
+            margin: 0;
+            padding: 12px 14px;
+            font-size: 13px;
+            letter-spacing: .25px;
+            color: var(--muted);
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(255, 255, 255, .03);
+        }
+
+        .card .body {
+            padding: 12px 14px;
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .row.wraprow {
+            flex-wrap: wrap;
+        }
+
+        .col {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .spacer {
+            height: 10px;
+        }
+
+        label {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="range"] {
+            width: 100%;
+        }
+
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 9px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .25);
+            color: var(--text);
+            outline: none;
+        }
+
+        select {
+            cursor: pointer;
+        }
+
+        .btn {
+            padding: 10px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .06);
+            color: var(--text);
+            cursor: pointer;
+            user-select: none;
+            font-weight: 600;
+            letter-spacing: .2px;
+            transition: transform .05s ease, background .12s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, .10);
+        }
+
+        .btn:active {
+            transform: scale(.99);
+        }
+
+        .btn.primary {
+            background: rgba(122, 162, 255, .18);
+            border-color: rgba(122, 162, 255, .35);
+        }
+
+        .btn.primary:hover {
+            background: rgba(122, 162, 255, .24);
+        }
+
+        .btn.danger {
+            background: rgba(255, 107, 107, .14);
+            border-color: rgba(255, 107, 107, .32);
+        }
+
+        .chips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .chip {
+            padding: 6px 8px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, .20);
+            border: 1px solid rgba(255, 255, 255, .08);
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .chip b {
+            color: var(--text);
+            font-weight: 700;
+        }
+
+        .split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .split3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+
+        .help {
+            font-size: 12px;
+            line-height: 1.35;
+            color: var(--muted);
+        }
+
+        canvas {
+            width: 100%;
+            height: 260px;
+            display: block;
+            background: rgba(0, 0, 0, .18);
+            border-top: 1px solid rgba(255, 255, 255, .06);
+        }
+
+        .canvasWrap {
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(0, 0, 0, .12);
+        }
+
+        .miniTitle {
+            padding: 10px 12px;
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(255, 255, 255, .03);
+        }
+
+        .miniTitle span {
+            color: var(--muted);
+        }
+
+        .miniTitle b {
+            color: var(--text);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            overflow: hidden;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, .08);
+        }
+
+        th,
+        td {
+            padding: 8px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        th {
+            text-align: right;
+            font-weight: 700;
+            color: var(--muted);
+            background: rgba(255, 255, 255, .03);
+        }
+
+        td:first-child,
+        th:first-child {
+            text-align: left;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr.active {
+            background: rgba(122, 162, 255, .10);
+            outline: 1px solid rgba(122, 162, 255, .18);
+        }
+
+        .bar {
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .06);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, .08);
+        }
+
+        .bar>div {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, rgba(122, 162, 255, .0), rgba(122, 162, 255, .7));
+        }
+
+        .progressRow {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        .kbd {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .22);
+            color: var(--text);
+        }
+
+        .legend {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 10px 12px;
+            border-top: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(0, 0, 0, .10);
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .legItem {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .swatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+            background: #fff;
+            opacity: .95;
+            border: 1px solid rgba(0, 0, 0, .2);
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>
+            Multi-Armed Bandits — Interactive Demo
+            <span class="tag">Greedy / ε-greedy / UCB / Softmax</span>
+            <span class="tag">Stationary + Non-stationary</span>
+            <span class="tag">Sample-average vs Constant step-size</span>
+        </h1>
+    </header>
+
+    <div class="wrap">
+        <!-- LEFT: Controls -->
+        <section class="card">
+            <h2>Controls</h2>
+            <div class="body">
+                <div class="split">
+                    <div class="col">
+                        <label>Arms (k) <span class="kbd" id="kVal">10</span></label>
+                        <input id="k" type="range" min="2" max="20" value="10" />
+                    </div>
+                    <div class="col">
+                        <label>Steps per run <span class="kbd" id="stepsVal">1000</span></label>
+                        <input id="steps" type="range" min="50" max="3000" value="1000" step="50" />
+                    </div>
+                </div>
+
+                <div class="spacer"></div>
+
+                <div class="col">
+                    <label>Bandit dynamics</label>
+                    <div class="split">
+                        <select id="stationary">
+                            <option value="stationary" selected>Stationary (q* fixed)</option>
+                            <option value="nonstationary">Non-stationary (random walk)</option>
+                        </select>
+                        <div class="col">
+                            <label>Drift σ (non-stationary) <span class="kbd" id="driftVal">0.01</span></label>
+                            <input id="drift" type="range" min="0" max="0.1" value="0.01" step="0.005" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="spacer"></div>
+
+                <div class="col">
+                    <label>Update rule</label>
+                    <div class="split">
+                        <select id="updateRule">
+                            <option value="sampleavg" selected>Sample-average (1/N)</option>
+                            <option value="constant">Constant step-size (α)</option>
+                        </select>
+                        <div class="col">
+                            <label>α <span class="kbd" id="alphaVal">0.10</span></label>
+                            <input id="alpha" type="range" min="0.01" max="1" value="0.10" step="0.01" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="spacer"></div>
+
+                <div class="col">
+                    <label>Algorithm (single run)</label>
+                    <select id="algoSingle">
+                        <option value="greedy">Greedy</option>
+                        <option value="egreedy" selected>ε-greedy</option>
+                        <option value="ucb">UCB</option>
+                        <option value="softmax">Softmax</option>
+                    </select>
+                </div>
+
+                <div class="split">
+                    <div class="col">
+                        <label>ε <span class="kbd" id="epsVal">0.10</span></label>
+                        <input id="eps" type="range" min="0" max="1" value="0.10" step="0.01" />
+                    </div>
+                    <div class="col">
+                        <label>UCB c <span class="kbd" id="cVal">2.00</span></label>
+                        <input id="ucbC" type="range" min="0" max="5" value="2" step="0.05" />
+                    </div>
+                </div>
+
+                <div class="split">
+                    <div class="col">
+                        <label>Softmax τ <span class="kbd" id="tauVal">0.50</span></label>
+                        <input id="tau" type="range" min="0.05" max="2.0" value="0.50" step="0.05" />
+                    </div>
+                    <div class="col">
+                        <label>Optimistic init Q₀ <span class="kbd" id="q0Val">0.00</span></label>
+                        <input id="q0" type="range" min="-2" max="5" value="0" step="0.1" />
+                    </div>
+                </div>
+
+                <div class="spacer"></div>
+
+                <div class="row wraprow">
+                    <button class="btn primary" id="newRun">New bandit + reset</button>
+                    <button class="btn" id="stepOnce">Step</button>
+                    <button class="btn" id="play">Play</button>
+                    <button class="btn danger" id="stop">Stop</button>
+                </div>
+
+                <div class="spacer"></div>
+
+                <div class="card" style="background: rgba(0,0,0,.10); border-radius:14px;">
+                    <div class="body">
+                        <div class="chips">
+                            <div class="chip">t: <b id="tChip">0</b></div>
+                            <div class="chip">action: <b id="aChip">–</b></div>
+                            <div class="chip">reward: <b id="rChip">–</b></div>
+                            <div class="chip">avg reward: <b id="avgChip">–</b></div>
+                            <div class="chip">% optimal: <b id="optChip">–</b></div>
+                        </div>
+                        <div class="spacer"></div>
+                        <div class="help">
+                            Tips: Use <span class="kbd">Step</span> to teach the logic. Use <span
+                                class="kbd">Play</span> to show convergence / getting stuck.
+                            Non-stationary + constant α shows tracking better than sample-average.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="spacer"></div>
+
+                <h2
+                    style="border:none; background:none; padding:0; margin:8px 0 6px; color:var(--muted); font-size:13px;">
+                    Batch comparison (Sutton Fig 2.2 style)</h2>
+                <div class="help" style="margin-bottom:10px;">
+                    This runs many independent bandit problems and plots the averages, like Sutton’s 10-armed testbed.
+                    It’s async, but big runs still take a moment.
+                </div>
+
+                <div class="split">
+                    <div class="col">
+                        <label>Runs</label>
+                        <input id="runs" type="number" min="10" max="20000" value="2000" />
+                    </div>
+                    <div class="col">
+                        <label>Compare methods</label>
+                        <select id="comparePreset">
+                            <option value="sutton" selected>Greedy vs ε=0.01 vs ε=0.1</option>
+                            <option value="ucb">Greedy vs UCB vs ε=0.1</option>
+                            <option value="softmax">Greedy vs Softmax vs ε=0.1</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row wraprow" style="margin-top:10px;">
+                    <button class="btn primary" id="runBatch">Run batch</button>
+                    <button class="btn danger" id="cancelBatch">Cancel batch</button>
+                </div>
+
+                <div class="progressRow">
+                    <div class="bar" style="flex:1;">
+                        <div id="progBar"></div>
+                    </div>
+                    <div class="muted"><span id="progText">Idle</span></div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- RIGHT: Visuals -->
+        <section class="card">
+            <h2>Visualization</h2>
+            <div class="body">
+                <div class="split">
+                    <div class="canvasWrap">
+                        <div class="miniTitle"><span>Single run</span> <b>Reward per step</b></div>
+                        <canvas id="singleCanvas" width="900" height="260"></canvas>
+                        <div class="legend" id="singleLegend"></div>
+                    </div>
+                    <div class="canvasWrap">
+                        <div class="miniTitle"><span>Single run</span> <b>% Optimal action (running)</b></div>
+                        <canvas id="singleOptCanvas" width="900" height="260"></canvas>
+                        <div class="legend" id="singleOptLegend"></div>
+                    </div>
+                </div>
+
+                <div class="spacer"></div>
+
+                <div class="split">
+                    <div class="canvasWrap">
+                        <div class="miniTitle"><span>Batch</span> <b>Average reward</b></div>
+                        <canvas id="batchCanvas" width="900" height="260"></canvas>
+                        <div class="legend" id="batchLegend"></div>
+                    </div>
+                    <div class="canvasWrap">
+                        <div class="miniTitle"><span>Batch</span> <b>% Optimal action</b></div>
+                        <canvas id="batchOptCanvas" width="900" height="260"></canvas>
+                        <div class="legend" id="batchOptLegend"></div>
+                    </div>
+                </div>
+
+                <div class="spacer"></div>
+
+                <div class="split">
+                    <div class="card" style="box-shadow:none;">
+                        <h2>Arms table (q*, Q, N)</h2>
+                        <div class="body" style="padding-top:10px;">
+                            <table id="armsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Arm</th>
+                                        <th>q* (true)</th>
+                                        <th>Q (estimate)</th>
+                                        <th>N</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                            <div class="help" style="margin-top:10px;">
+                                q* is hidden in real problems, but shown here to make exploration vs exploitation
+                                visually obvious.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card" style="box-shadow:none;">
+                        <h2>What students should notice</h2>
+                        <div class="body">
+                            <ul class="help" style="margin:0; padding-left:16px;">
+                                <li><b>Greedy</b> can lock onto a suboptimal arm early (bad long-run performance).</li>
+                                <li><b>ε-greedy</b> keeps sampling: more ε → more exploration, but too much hurts
+                                    short-term reward.</li>
+                                <li><b>UCB</b> explores “uncertain” arms more systematically than ε-random.</li>
+                                <li>In <b>non-stationary</b> settings, <b>constant α</b> updates track drift better than
+                                    sample-average.</li>
+                                <li><b>Optimistic init</b> encourages early exploration even with greedy.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </div>
+
+    <script>
+        /* =========================
+           Utilities
+        ========================= */
+        function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
+
+        function randn() { // Box–Muller
+            let u = 0, v = 0;
+            while (u === 0) u = Math.random();
+            while (v === 0) v = Math.random();
+            return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+        }
+
+        function argmaxRandomTie(arr) {
+            let best = -Infinity;
+            for (const x of arr) if (x > best) best = x;
+            const idx = [];
+            for (let i = 0; i < arr.length; i++) if (arr[i] === best) idx.push(i);
+            return idx[Math.floor(Math.random() * idx.length)];
+        }
+
+        /* =========================
+           Bandit Environment
+        ========================= */
+        class Bandit {
+            constructor(k = 10, stationary = true, driftSigma = 0.01) {
+                this.k = k;
+                this.stationary = stationary;
+                this.driftSigma = driftSigma;
+                this.qStar = Array.from({ length: k }, () => randn()); // N(0,1)
+            }
+            clone() {
+                // for fairness in batch: same initial qStar and dynamics settings
+                const b = new Bandit(this.k, this.stationary, this.driftSigma);
+                b.qStar = this.qStar.slice();
+                return b;
+            }
+            step(action) {
+                // reward ~ N(q*(a), 1)
+                const r = this.qStar[action] + randn();
+                if (!this.stationary) {
+                    // random walk drift for ALL arms
+                    for (let i = 0; i < this.k; i++) {
+                        this.qStar[i] += this.driftSigma * randn();
+                    }
+                }
+                return r;
+            }
+            optimalAction() {
+                return argmaxRandomTie(this.qStar);
+            }
+        }
+
+        /* =========================
+           Agent
+        ========================= */
+        class Agent {
+            constructor(k, {
+                algo = "egreedy",
+                epsilon = 0.1,
+                ucbC = 2.0,
+                tau = 0.5,
+                updateRule = "sampleavg",
+                alpha = 0.1,
+                q0 = 0.0
+            } = {}) {
+                this.k = k;
+                this.algo = algo;
+                this.epsilon = epsilon;
+                this.ucbC = ucbC;
+                this.tau = tau;
+                this.updateRule = updateRule;
+                this.alpha = alpha;
+                this.q0 = q0;
+
+                this.t = 0;
+                this.Q = Array(k).fill(q0);
+                this.N = Array(k).fill(0);
+            }
+
+            selectAction() {
+                if (this.algo === "greedy") return argmaxRandomTie(this.Q);
+
+                if (this.algo === "egreedy") {
+                    if (Math.random() < this.epsilon) {
+                        return Math.floor(Math.random() * this.k);
+                    }
+                    return argmaxRandomTie(this.Q);
+                }
+
+                if (this.algo === "ucb") {
+                    // ensure each arm tried at least once
+                    for (let i = 0; i < this.k; i++) {
+                        if (this.N[i] === 0) return i;
+                    }
+                    const t = Math.max(1, this.t);
+                    const scores = this.Q.map((q, i) => {
+                        return q + this.ucbC * Math.sqrt(Math.log(t) / this.N[i]);
+                    });
+                    return argmaxRandomTie(scores);
+                }
+
+                if (this.algo === "softmax") {
+                    const tau = Math.max(1e-6, this.tau);
+                    const maxQ = Math.max(...this.Q);
+                    const exps = this.Q.map(q => Math.exp((q - maxQ) / tau));
+                    const sum = exps.reduce((a, b) => a + b, 0);
+                    let r = Math.random() * sum;
+                    for (let i = 0; i < this.k; i++) {
+                        r -= exps[i];
+                        if (r <= 0) return i;
+                    }
+                    return this.k - 1;
+                }
+
+                // fallback
+                return argmaxRandomTie(this.Q);
+            }
+
+            update(a, r) {
+                this.t += 1;
+                this.N[a] += 1;
+
+                if (this.updateRule === "sampleavg") {
+                    const n = this.N[a];
+                    this.Q[a] += (r - this.Q[a]) / n;
+                } else {
+                    this.Q[a] += this.alpha * (r - this.Q[a]);
+                }
+            }
+        }
+
+        /* =========================
+           Plotting (Canvas)
+        ========================= */
+        function drawAxes(ctx, w, h, pad, title, yLabel, xLabel) {
+            ctx.clearRect(0, 0, w, h);
+
+            // background
+            ctx.fillStyle = "rgba(0,0,0,0.0)";
+            ctx.fillRect(0, 0, w, h);
+
+            // grid + axes
+            ctx.strokeStyle = "rgba(255,255,255,0.10)";
+            ctx.lineWidth = 1;
+
+            // border
+            ctx.strokeRect(pad, pad, w - 2 * pad, h - 2 * pad);
+
+            // grid lines
+            const gx = 5, gy = 5;
+            for (let i = 1; i < gx; i++) {
+                const x = pad + i * (w - 2 * pad) / gx;
+                ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, h - pad); ctx.stroke();
+            }
+            for (let j = 1; j < gy; j++) {
+                const y = pad + j * (h - 2 * pad) / gy;
+                ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(w - pad, y); ctx.stroke();
+            }
+
+            // labels
+            ctx.fillStyle = "rgba(233,238,252,0.90)";
+            ctx.font = "12px ui-sans-serif, system-ui";
+            ctx.fillText(title, pad + 6, pad - 8);
+
+            ctx.fillStyle = "rgba(169,180,214,0.95)";
+            ctx.font = "11px ui-sans-serif, system-ui";
+            ctx.fillText(yLabel, 8, pad + 10);
+            ctx.fillText(xLabel, w - pad - 60, h - 10);
+        }
+
+        function plotLines(ctx, w, h, pad, series, yMin = null, yMax = null) {
+            // series: [{name, data:Array<number>, color, alpha=1}]
+            const n = Math.max(...series.map(s => s.data.length), 1);
+            if (yMin === null || yMax === null) {
+                let lo = Infinity, hi = -Infinity;
+                for (const s of series) {
+                    for (const v of s.data) {
+                        if (v < lo) lo = v;
+                        if (v > hi) hi = v;
+                    }
+                }
+                if (lo === Infinity) { lo = 0; hi = 1; }
+                const padY = (hi - lo) * 0.08 || 0.1;
+                yMin = lo - padY;
+                yMax = hi + padY;
+                if (yMin === yMax) { yMin -= 1; yMax += 1; }
+            }
+
+            const X = (i) => pad + (i / (n - 1 || 1)) * (w - 2 * pad);
+            const Y = (v) => pad + (1 - (v - yMin) / (yMax - yMin)) * (h - 2 * pad);
+
+            // y ticks
+            ctx.fillStyle = "rgba(169,180,214,0.85)";
+            ctx.font = "10px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas";
+            const ticks = 5;
+            for (let j = 0; j <= ticks; j++) {
+                const v = yMin + (j / ticks) * (yMax - yMin);
+                const y = Y(v);
+                ctx.fillText(v.toFixed(2), pad + 6, y - 2);
+            }
+
+            for (const s of series) {
+                if (!s.data.length) continue;
+                ctx.strokeStyle = s.color;
+                ctx.globalAlpha = s.alpha ?? 0.95;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(X(0), Y(s.data[0]));
+                for (let i = 1; i < s.data.length; i++) {
+                    ctx.lineTo(X(i), Y(s.data[i]));
+                }
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        function setLegend(el, series) {
+            el.innerHTML = "";
+            for (const s of series) {
+                const item = document.createElement("div");
+                item.className = "legItem";
+                const sw = document.createElement("div");
+                sw.className = "swatch";
+                sw.style.background = s.color;
+                item.appendChild(sw);
+                const t = document.createElement("div");
+                t.textContent = s.name;
+                item.appendChild(t);
+                el.appendChild(item);
+            }
+        }
+
+        /* =========================
+           App State
+        ========================= */
+        const ui = {
+            k: document.getElementById("k"),
+            steps: document.getElementById("steps"),
+            stationary: document.getElementById("stationary"),
+            drift: document.getElementById("drift"),
+            updateRule: document.getElementById("updateRule"),
+            alpha: document.getElementById("alpha"),
+            algoSingle: document.getElementById("algoSingle"),
+            eps: document.getElementById("eps"),
+            ucbC: document.getElementById("ucbC"),
+            tau: document.getElementById("tau"),
+            q0: document.getElementById("q0"),
+
+            runs: document.getElementById("runs"),
+            comparePreset: document.getElementById("comparePreset"),
+
+            newRun: document.getElementById("newRun"),
+            stepOnce: document.getElementById("stepOnce"),
+            play: document.getElementById("play"),
+            stop: document.getElementById("stop"),
+            runBatch: document.getElementById("runBatch"),
+            cancelBatch: document.getElementById("cancelBatch"),
+
+            kVal: document.getElementById("kVal"),
+            stepsVal: document.getElementById("stepsVal"),
+            driftVal: document.getElementById("driftVal"),
+            alphaVal: document.getElementById("alphaVal"),
+            epsVal: document.getElementById("epsVal"),
+            cVal: document.getElementById("cVal"),
+            tauVal: document.getElementById("tauVal"),
+            q0Val: document.getElementById("q0Val"),
+
+            tChip: document.getElementById("tChip"),
+            aChip: document.getElementById("aChip"),
+            rChip: document.getElementById("rChip"),
+            avgChip: document.getElementById("avgChip"),
+            optChip: document.getElementById("optChip"),
+
+            progBar: document.getElementById("progBar"),
+            progText: document.getElementById("progText"),
+
+            armsTable: document.getElementById("armsTable").querySelector("tbody"),
+
+            singleCanvas: document.getElementById("singleCanvas"),
+            singleOptCanvas: document.getElementById("singleOptCanvas"),
+            batchCanvas: document.getElementById("batchCanvas"),
+            batchOptCanvas: document.getElementById("batchOptCanvas"),
+
+            singleLegend: document.getElementById("singleLegend"),
+            singleOptLegend: document.getElementById("singleOptLegend"),
+            batchLegend: document.getElementById("batchLegend"),
+            batchOptLegend: document.getElementById("batchOptLegend"),
+        };
+
+        const colors = {
+            blue: "rgba(122,162,255,0.95)",
+            green: "rgba(118,247,196,0.95)",
+            red: "rgba(255,107,107,0.95)",
+            yellow: "rgba(255,204,102,0.95)",
+            purple: "rgba(200,160,255,0.95)",
+            gray: "rgba(200,200,220,0.85)",
+        };
+
+        let bandit = null;
+        let agent = null;
+        let playing = false;
+        let rafId = null;
+
+        // single-run history
+        let singleRewards = [];
+        let singleAvgRewards = [];
+        let singleOptRunning = []; // running fraction optimal
+        let singleTotalReward = 0;
+        let singleOptCount = 0;
+        let lastAction = null;
+
+        function currentConfig() {
+            const k = parseInt(ui.k.value, 10);
+            const steps = parseInt(ui.steps.value, 10);
+            const stationary = ui.stationary.value === "stationary";
+            const driftSigma = parseFloat(ui.drift.value);
+            const updateRule = ui.updateRule.value;
+            const alpha = parseFloat(ui.alpha.value);
+            const algo = ui.algoSingle.value;
+            const epsilon = parseFloat(ui.eps.value);
+            const ucbC = parseFloat(ui.ucbC.value);
+            const tau = parseFloat(ui.tau.value);
+            const q0 = parseFloat(ui.q0.value);
+            return { k, steps, stationary, driftSigma, updateRule, alpha, algo, epsilon, ucbC, tau, q0 };
+        }
+
+        function resetSingle() {
+            const cfg = currentConfig();
+            bandit = new Bandit(cfg.k, cfg.stationary, cfg.driftSigma);
+            agent = new Agent(cfg.k, {
+                algo: cfg.algo,
+                epsilon: cfg.epsilon,
+                ucbC: cfg.ucbC,
+                tau: cfg.tau,
+                updateRule: cfg.updateRule,
+                alpha: cfg.alpha,
+                q0: cfg.q0,
+            });
+
+            playing = false;
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = null;
+
+            singleRewards = [];
+            singleAvgRewards = [];
+            singleOptRunning = [];
+            singleTotalReward = 0;
+            singleOptCount = 0;
+            lastAction = null;
+
+            updateChips(0, null, null);
+            renderAll();
+        }
+
+        function updateChips(t, a, r) {
+            ui.tChip.textContent = t.toString();
+            ui.aChip.textContent = (a === null || a === undefined) ? "–" : a.toString();
+            ui.rChip.textContent = (r === null || r === undefined) ? "–" : r.toFixed(3);
+
+            if (t > 0) {
+                ui.avgChip.textContent = (singleTotalReward / t).toFixed(3);
+                ui.optChip.textContent = ((singleOptCount / t) * 100).toFixed(1) + "%";
+            } else {
+                ui.avgChip.textContent = "–";
+                ui.optChip.textContent = "–";
+            }
+        }
+
+        function stepSingle() {
+            const cfg = currentConfig();
+            if (singleRewards.length >= cfg.steps) return;
+
+            // keep agent config in sync with UI for teaching convenience
+            agent.algo = cfg.algo;
+            agent.epsilon = cfg.epsilon;
+            agent.ucbC = cfg.ucbC;
+            agent.tau = cfg.tau;
+            agent.updateRule = cfg.updateRule;
+            agent.alpha = cfg.alpha;
+
+            const a = agent.selectAction();
+            const optA = bandit.optimalAction();
+            const r = bandit.step(a);
+            agent.update(a, r);
+
+            const t = singleRewards.length + 1;
+            singleRewards.push(r);
+            singleTotalReward += r;
+            const avg = singleTotalReward / t;
+            singleAvgRewards.push(avg);
+
+            if (a === optA) singleOptCount += 1;
+            singleOptRunning.push(singleOptCount / t);
+
+            lastAction = a;
+            updateChips(t, a, r);
+            renderAll();
+        }
+
+        function playLoop() {
+            if (!playing) return;
+            const cfg = currentConfig();
+            // do multiple steps per frame for speed, but cap for smoothness
+            const remaining = cfg.steps - singleRewards.length;
+            const batch = Math.min(10, remaining);
+            for (let i = 0; i < batch; i++) stepSingle();
+            if (singleRewards.length >= cfg.steps) {
+                playing = false;
+                ui.play.textContent = "Play";
+                return;
+            }
+            rafId = requestAnimationFrame(playLoop);
+        }
+
+        /* =========================
+           Table + Plots Rendering
+        ========================= */
+        function renderArmsTable() {
+            ui.armsTable.innerHTML = "";
+            const k = bandit.k;
+            for (let i = 0; i < k; i++) {
+                const tr = document.createElement("tr");
+                if (lastAction === i) tr.classList.add("active");
+
+                const tdA = document.createElement("td"); tdA.textContent = i.toString();
+                const tdQstar = document.createElement("td"); tdQstar.textContent = bandit.qStar[i].toFixed(3);
+                const tdQ = document.createElement("td"); tdQ.textContent = agent.Q[i].toFixed(3);
+                const tdN = document.createElement("td"); tdN.textContent = agent.N[i].toString();
+
+                tr.appendChild(tdA); tr.appendChild(tdQstar); tr.appendChild(tdQ); tr.appendChild(tdN);
+                ui.armsTable.appendChild(tr);
+            }
+        }
+
+        function renderSinglePlots() {
+            // reward plot: show running average (cleaner for teaching)
+            const c = ui.singleCanvas;
+            const ctx = c.getContext("2d");
+            const w = c.width, h = c.height, pad = 34;
+
+            drawAxes(ctx, w, h, pad, "Single run", "reward", "steps");
+
+            const series = [
+                { name: "Running avg reward", data: singleAvgRewards, color: colors.blue, alpha: 0.95 },
+            ];
+            plotLines(ctx, w, h, pad, series, null, null);
+            setLegend(ui.singleLegend, series);
+
+            // optimal plot
+            const c2 = ui.singleOptCanvas;
+            const ctx2 = c2.getContext("2d");
+            drawAxes(ctx2, c2.width, c2.height, pad, "Single run", "fraction optimal", "steps");
+            const series2 = [
+                { name: "Running % optimal", data: singleOptRunning.map(x => x * 100), color: colors.green, alpha: 0.95 },
+            ];
+            plotLines(ctx2, c2.width, c2.height, pad, series2, 0, 100);
+            setLegend(ui.singleOptLegend, series2);
+        }
+
+        function renderBatchPlots(batchState) {
+            const pad = 34;
+
+            const bc = ui.batchCanvas;
+            const bctx = bc.getContext("2d");
+            drawAxes(bctx, bc.width, bc.height, pad, "Batch avg over runs", "avg reward", "steps");
+            plotLines(bctx, bc.width, bc.height, pad, batchState.rewardSeries, null, null);
+            setLegend(ui.batchLegend, batchState.rewardSeries);
+
+            const boc = ui.batchOptCanvas;
+            const boctx = boc.getContext("2d");
+            drawAxes(boctx, boc.width, boc.height, pad, "Batch avg over runs", "% optimal", "steps");
+            plotLines(boctx, boc.width, boc.height, pad, batchState.optSeries, 0, 100);
+            setLegend(ui.batchOptLegend, batchState.optSeries);
+        }
+
+        function renderAll() {
+            if (!bandit || !agent) return;
+            renderArmsTable();
+            renderSinglePlots();
+        }
+
+        /* =========================
+           UI Wiring
+        ========================= */
+        function syncLabels() {
+            ui.kVal.textContent = ui.k.value;
+            ui.stepsVal.textContent = ui.steps.value;
+            ui.driftVal.textContent = parseFloat(ui.drift.value).toFixed(3);
+            ui.alphaVal.textContent = parseFloat(ui.alpha.value).toFixed(2);
+            ui.epsVal.textContent = parseFloat(ui.eps.value).toFixed(2);
+            ui.cVal.textContent = parseFloat(ui.ucbC.value).toFixed(2);
+            ui.tauVal.textContent = parseFloat(ui.tau.value).toFixed(2);
+            ui.q0Val.textContent = parseFloat(ui.q0.value).toFixed(2);
+        }
+
+        ["k", "steps", "drift", "alpha", "eps", "ucbC", "tau", "q0"].forEach(id => {
+            document.getElementById(id).addEventListener("input", () => {
+                syncLabels();
+            });
+        });
+        ["stationary", "updateRule", "algoSingle"].forEach(id => {
+            document.getElementById(id).addEventListener("change", () => {
+                syncLabels();
+            });
+        });
+
+        ui.newRun.addEventListener("click", resetSingle);
+
+        ui.stepOnce.addEventListener("click", () => {
+            playing = false;
+            ui.play.textContent = "Play";
+            stepSingle();
+        });
+
+        ui.play.addEventListener("click", () => {
+            if (!playing) {
+                playing = true;
+                ui.play.textContent = "Pause";
+                playLoop();
+            } else {
+                playing = false;
+                ui.play.textContent = "Play";
+            }
+        });
+
+        ui.stop.addEventListener("click", () => {
+            playing = false;
+            ui.play.textContent = "Play";
+        });
+
+        /* =========================
+           Batch Simulation (async)
+        ========================= */
+        let batchCancelled = false;
+
+        function makeCompareMethods(preset, cfg) {
+            // return array of {name, agentConfig, color}
+            if (preset === "sutton") {
+                return [
+                    { name: "ε=0 (greedy)", agentConfig: { algo: "greedy" }, color: colors.green },
+                    { name: "ε=0.01", agentConfig: { algo: "egreedy", epsilon: 0.01 }, color: colors.red },
+                    { name: "ε=0.1", agentConfig: { algo: "egreedy", epsilon: 0.1 }, color: colors.blue },
+                ];
+            }
+            if (preset === "ucb") {
+                return [
+                    { name: "ε=0 (greedy)", agentConfig: { algo: "greedy" }, color: colors.green },
+                    { name: `UCB (c=${cfg.ucbC.toFixed(2)})`, agentConfig: { algo: "ucb", ucbC: cfg.ucbC }, color: colors.purple },
+                    { name: "ε=0.1", agentConfig: { algo: "egreedy", epsilon: 0.1 }, color: colors.blue },
+                ];
+            }
+            if (preset === "softmax") {
+                return [
+                    { name: "ε=0 (greedy)", agentConfig: { algo: "greedy" }, color: colors.green },
+                    { name: `Softmax (τ=${cfg.tau.toFixed(2)})`, agentConfig: { algo: "softmax", tau: cfg.tau }, color: colors.yellow },
+                    { name: "ε=0.1", agentConfig: { algo: "egreedy", epsilon: 0.1 }, color: colors.blue },
+                ];
+            }
+            // fallback
+            return [
+                { name: "ε=0 (greedy)", agentConfig: { algo: "greedy" }, color: colors.green },
+                { name: "ε=0.1", agentConfig: { algo: "egreedy", epsilon: 0.1 }, color: colors.blue },
+            ];
+        }
+
+        async function runBatch() {
+            batchCancelled = false;
+            ui.progText.textContent = "Starting...";
+            ui.progBar.style.width = "0%";
+
+            const cfg = currentConfig();
+            const runs = clamp(parseInt(ui.runs.value, 10) || 2000, 10, 20000);
+            const steps = cfg.steps;
+
+            const methods = makeCompareMethods(ui.comparePreset.value, cfg);
+
+            // accumulators: per method per step sums
+            const sumReward = methods.map(() => new Float64Array(steps));
+            const sumOpt = methods.map(() => new Float64Array(steps));
+
+            let done = 0;
+
+            // chunked loop (yield to UI)
+            const chunk = 10;
+            while (done < runs && !batchCancelled) {
+                const upto = Math.min(runs, done + chunk);
+
+                for (let run = done; run < upto; run++) {
+                    // same underlying bandit instance for all methods in this run (fair comparison)
+                    const b0 = new Bandit(cfg.k, cfg.stationary, cfg.driftSigma);
+
+                    // create per-method bandit clones that share evolving q* (esp non-stationary)
+                    // We'll evolve a shared q* by stepping a "master" bandit; but rewards need noise per method.
+                    // Trick: keep ONE master bandit q*, and sample rewards for each method against current q* each step,
+                    // then advance drift once per step (not per method).
+                    const master = b0;
+
+                    const agents = methods.map(m => new Agent(cfg.k, {
+                        algo: m.agentConfig.algo ?? "egreedy",
+                        epsilon: m.agentConfig.epsilon ?? cfg.epsilon,
+                        ucbC: m.agentConfig.ucbC ?? cfg.ucbC,
+                        tau: m.agentConfig.tau ?? cfg.tau,
+                        updateRule: cfg.updateRule,
+                        alpha: cfg.alpha,
+                        q0: cfg.q0,
+                    }));
+
+                    for (let t = 0; t < steps; t++) {
+                        const optA = master.optimalAction();
+
+                        // each agent picks action, receives reward with its own noise, then updates
+                        for (let mi = 0; mi < agents.length; mi++) {
+                            const ag = agents[mi];
+                            const a = ag.selectAction();
+                            const r = master.qStar[a] + randn(); // reward noise per agent
+                            ag.update(a, r);
+
+                            sumReward[mi][t] += r;
+                            sumOpt[mi][t] += (a === optA) ? 1 : 0;
+                        }
+
+                        // evolve q* once per step if non-stationary
+                        if (!master.stationary) {
+                            for (let i = 0; i < master.k; i++) {
+                                master.qStar[i] += master.driftSigma * randn();
+                            }
+                        }
+                    }
+                }
+
+                done = upto;
+                const pct = (done / runs) * 100;
+                ui.progBar.style.width = pct.toFixed(1) + "%";
+                ui.progText.textContent = `Running... ${done}/${runs}`;
+
+                // update plots live during batch
+                const rewardSeries = methods.map((m, i) => ({
+                    name: m.name,
+                    color: m.color,
+                    data: Array.from({ length: steps }, (_, t) => sumReward[i][t] / done),
+                    alpha: 0.95
+                }));
+                const optSeries = methods.map((m, i) => ({
+                    name: m.name,
+                    color: m.color,
+                    data: Array.from({ length: steps }, (_, t) => (sumOpt[i][t] / done) * 100),
+                    alpha: 0.95
+                }));
+                renderBatchPlots({ rewardSeries, optSeries });
+
+                await new Promise(res => setTimeout(res, 0)); // yield to UI
+            }
+
+            if (batchCancelled) {
+                ui.progText.textContent = "Cancelled.";
+            } else {
+                ui.progText.textContent = `Done. (${runs} runs)`;
+                ui.progBar.style.width = "100%";
+            }
+        }
+
+        ui.runBatch.addEventListener("click", () => {
+            runBatch().catch(err => {
+                console.error(err);
+                ui.progText.textContent = "Error (see console).";
+            });
+        });
+
+        ui.cancelBatch.addEventListener("click", () => {
+            batchCancelled = true;
+        });
+
+        /* =========================
+           Init
+        ========================= */
+        syncLabels();
+        resetSingle();
+
+        // initialize batch canvases with empty series
+        renderBatchPlots({
+            rewardSeries: [
+                { name: "ε=0 (greedy)", data: [], color: colors.green },
+                { name: "ε=0.01", data: [], color: colors.red },
+                { name: "ε=0.1", data: [], color: colors.blue },
+            ],
+            optSeries: [
+                { name: "ε=0 (greedy)", data: [], color: colors.green },
+                { name: "ε=0.01", data: [], color: colors.red },
+                { name: "ε=0.1", data: [], color: colors.blue },
+            ],
+        });
+    </script>
+</body>
+
+</html>

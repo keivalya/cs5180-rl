@@ -1,0 +1,1173 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Markov Decision Processes — Interactive Gridworld</title>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --panel: #121a33;
+            --panel2: #0f1630;
+            --text: #e9eefc;
+            --muted: #a9b4d6;
+            --accent: #7aa2ff;
+            --good: #76f7c4;
+            --warn: #ffcc66;
+            --bad: #ff6b6b;
+            --line: #24305a;
+            --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+            background: radial-gradient(1200px 700px at 20% 10%, #1a2550 0%, var(--bg) 60%) fixed;
+            color: var(--text);
+        }
+
+        header {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+            background: rgba(0, 0, 0, .18);
+            position: sticky;
+            top: 0;
+            backdrop-filter: blur(6px);
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        header h1 {
+            font-size: 15px;
+            margin: 0;
+            letter-spacing: .2px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            font-size: 12px;
+            padding: 3px 8px;
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .04);
+            color: var(--muted);
+        }
+
+        nav a {
+            color: var(--muted);
+            text-decoration: none;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .04);
+            font-size: 12px;
+        }
+
+        nav a:hover {
+            background: rgba(255, 255, 255, .08);
+            color: var(--text);
+        }
+
+        .wrap {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 14px;
+            padding: 14px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 1000px) {
+            .wrap {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .03));
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card h2 {
+            margin: 0;
+            padding: 12px 14px;
+            font-size: 13px;
+            letter-spacing: .25px;
+            color: var(--muted);
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(255, 255, 255, .03);
+        }
+
+        .card .body {
+            padding: 12px 14px;
+        }
+
+        .help {
+            font-size: 12px;
+            line-height: 1.4;
+            color: var(--muted);
+        }
+
+        .kbd {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .22);
+            color: var(--text);
+        }
+
+        .split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        label {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="range"] {
+            width: 100%;
+        }
+
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 9px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .25);
+            color: var(--text);
+            outline: none;
+        }
+
+        select {
+            cursor: pointer;
+        }
+
+        .btn {
+            padding: 10px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .06);
+            color: var(--text);
+            cursor: pointer;
+            user-select: none;
+            font-weight: 600;
+            letter-spacing: .2px;
+            transition: transform .05s ease, background .12s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, .10);
+        }
+
+        .btn:active {
+            transform: scale(.99);
+        }
+
+        .btn.primary {
+            background: rgba(122, 162, 255, .18);
+            border-color: rgba(122, 162, 255, .35);
+        }
+
+        .btn.primary:hover {
+            background: rgba(122, 162, 255, .24);
+        }
+
+        .btn.danger {
+            background: rgba(255, 107, 107, .14);
+            border-color: rgba(255, 107, 107, .32);
+        }
+
+        .chips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .chip {
+            padding: 6px 8px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, .20);
+            border: 1px solid rgba(255, 255, 255, .08);
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .chip b {
+            color: var(--text);
+            font-weight: 700;
+        }
+
+        .canvasWrap {
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(0, 0, 0, .12);
+            box-shadow: var(--shadow);
+        }
+
+        .miniTitle {
+            padding: 10px 12px;
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(255, 255, 255, .03);
+        }
+
+        .miniTitle b {
+            color: var(--text);
+        }
+
+        canvas {
+            width: 100%;
+            height: 520px;
+            display: block;
+        }
+
+        .legend {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            padding: 10px 12px;
+            border-top: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(0, 0, 0, .10);
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .legItem {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .swatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+            background: #fff;
+            opacity: .95;
+            border: 1px solid rgba(0, 0, 0, .2);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, .08);
+        }
+
+        th,
+        td {
+            padding: 8px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            font-weight: 700;
+            color: var(--muted);
+            background: rgba(255, 255, 255, .03);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .bar {
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .06);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, .08);
+        }
+
+        .bar>div {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, rgba(122, 162, 255, .0), rgba(122, 162, 255, .7));
+        }
+
+        .mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+            color: rgba(233, 238, 252, .9);
+        }
+
+        .math {
+            padding: 10px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .22);
+            color: rgba(233, 238, 252, .95);
+            font-size: 12px;
+            line-height: 1.45;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>
+            Markov Decision Processes — Interactive Gridworld (Sutton)
+            <span class="tag">MDP = (S, A, P, R, γ)</span>
+            <span class="tag">Bellman backup visualization</span>
+        </h1>
+        <nav class="row">
+            <a href="index.html">← Home</a>
+            <a href="#grid">Gridworld</a>
+            <a href="#mdp">MDP concepts</a>
+        </nav>
+    </header>
+
+    <div class="wrap">
+        <!-- LEFT: controls + explanation -->
+        <section class="card" id="mdp">
+            <h2>MDP concepts</h2>
+            <div class="body">
+                <div class="help">
+                    An MDP formalizes sequential decision-making with the <b>Markov property</b>:
+                    the next state and reward depend only on the current state and action.
+                </div>
+                <div class="spacer" style="height:10px;"></div>
+
+                <div class="math mono">
+                    <b>MDP tuple</b><br />
+                    S = states, A = actions<br />
+                    P(s′|s,a) = transition dynamics<br />
+                    R(s,a,s′) = expected reward<br />
+                    γ ∈ [0,1] = discount factor
+                </div>
+
+                <div class="spacer" style="height:10px;"></div>
+
+                <div class="math mono">
+                    <b>Return</b> (what we maximize)<br />
+                    Gₜ = Rₜ₊₁ + γRₜ₊₂ + γ²Rₜ₊₃ + …
+                </div>
+
+                <div class="spacer" style="height:10px;"></div>
+
+                <div class="math mono">
+                    <b>Bellman expectation backup</b> (policy evaluation)<br />
+                    V(s) ← Σₐ π(a|s) [ R(s,a,s′) + γ V(s′) ]<br />
+                    (here gridworld transitions are deterministic)
+                </div>
+
+                <div class="spacer" style="height:10px;"></div>
+
+                <div class="math mono">
+                    <b>Bellman optimality backup</b> (value iteration)<br />
+                    V(s) ← maxₐ [ R(s,a,s′) + γ V(s′) ]
+                </div>
+            </div>
+
+            <h2 id="grid">Gridworld controls</h2>
+            <div class="body">
+                <div class="split">
+                    <div class="col">
+                        <label>Mode</label>
+                        <select id="mode">
+                            <option value="policy" selected>Policy Evaluation (random π)</option>
+                            <option value="value">Value Iteration (optimal)</option>
+                        </select>
+                    </div>
+                    <div class="col">
+                        <label>γ <span class="kbd" id="gammaVal">0.90</span></label>
+                        <input id="gamma" type="range" min="0" max="0.99" step="0.01" value="0.90" />
+                    </div>
+                </div>
+
+                <div class="split" style="margin-top:10px;">
+                    <div class="col">
+                        <label>Sweeps / second <span class="kbd" id="speedVal">30</span></label>
+                        <input id="speed" type="range" min="1" max="120" step="1" value="30" />
+                    </div>
+                    <div class="col">
+                        <label>Stop when max Δ <span class="kbd" id="tolVal">0.001</span></label>
+                        <input id="tol" type="range" min="0.0001" max="0.05" step="0.0001" value="0.001" />
+                    </div>
+                </div>
+
+                <div class="split" style="margin-top:10px;">
+                    <div class="col">
+                        <label>Init V(s)</label>
+                        <select id="initV">
+                            <option value="zeros" selected>0 everywhere</option>
+                            <option value="random">Small random</option>
+                        </select>
+                    </div>
+                    <div class="col">
+                        <label>Show</label>
+                        <select id="showOverlay">
+                            <option value="values" selected>Values + policy arrows</option>
+                            <option value="rewards">Reward dynamics</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row" style="margin-top:10px;">
+                    <button class="btn primary" id="reset">Reset</button>
+                    <button class="btn" id="step">Step (one sweep)</button>
+                    <button class="btn" id="play">Play</button>
+                    <button class="btn danger" id="stop">Stop</button>
+                </div>
+
+                <div style="margin-top:12px;">
+                    <div class="chips">
+                        <div class="chip">sweep: <b id="sweepChip">0</b></div>
+                        <div class="chip">max Δ: <b id="deltaChip">–</b></div>
+                        <div class="chip">selected state: <b id="stateChip">–</b></div>
+                    </div>
+                </div>
+
+                <div style="margin-top:12px;">
+                    <div class="help">
+                        Click a cell on the grid to inspect a state’s backup. In Sutton’s example:
+                        <b>A</b> gives +10 and teleports to A′, <b>B</b> gives +5 and teleports to B′,
+                        and hitting the wall gives −1 (state unchanged).
+                    </div>
+                </div>
+
+                <div style="margin-top:12px;">
+                    <div class="bar">
+                        <div id="progBar"></div>
+                    </div>
+                    <div class="help" style="margin-top:6px;">Convergence curve is on the right (max Δ per sweep).</div>
+                </div>
+            </div>
+
+            <h2>Backup breakdown (selected state)</h2>
+            <div class="body">
+                <div class="help" id="backupHint">Click a state to see its Bellman backup terms.</div>
+                <div class="spacer" style="height:10px;"></div>
+                <table id="backupTable">
+                    <thead>
+                        <tr>
+                            <th>action</th>
+                            <th>next state</th>
+                            <th>reward</th>
+                            <th>backup term</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div class="spacer" style="height:10px;"></div>
+                <div class="math mono" id="backupFormula">
+                    V(s) update will appear here after you select a state.
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT: canvases -->
+        <section class="card">
+            <h2>Visualization</h2>
+            <div class="body">
+                <div class="canvasWrap">
+                    <div class="miniTitle"><span>Gridworld (5×5)</span> <b>Values + policy arrows</b></div>
+                    <canvas id="gridCanvas" width="1000" height="520"></canvas>
+                    <div class="legend" id="gridLegend"></div>
+                </div>
+
+                <div style="height:12px;"></div>
+
+                <div class="canvasWrap">
+                    <div class="miniTitle"><span>Convergence</span> <b>Max Δ per sweep</b></div>
+                    <canvas id="deltaCanvas" width="1000" height="260" style="height:260px;"></canvas>
+                    <div class="legend" id="deltaLegend"></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        /* =========================
+           Utilities
+        ========================= */
+        function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
+        function randn() {
+            let u = 0, v = 0;
+            while (u === 0) u = Math.random();
+            while (v === 0) v = Math.random();
+            return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+        }
+        function idx(r, c, cols) { return r * cols + c; }
+        function rc(i, cols) { return [Math.floor(i / cols), i % cols]; }
+
+        /* =========================
+           Sutton Example 3.5 Gridworld
+           5x5
+           Actions: N,S,E,W (deterministic)
+           Wall bump: reward -1, stay
+           Special:
+             A at (0,1) -> A' at (4,1) with +10 (any action)
+             B at (0,3) -> B' at (2,3) with +5  (any action)
+        ========================= */
+        const GRID = { rows: 5, cols: 5 };
+        const ACTIONS = [
+            { name: "N", dr: -1, dc: 0 },
+            { name: "S", dr: 1, dc: 0 },
+            { name: "W", dr: 0, dc: -1 },
+            { name: "E", dr: 0, dc: 1 },
+        ];
+
+        const SPECIAL = {
+            A: { r: 0, c: 1, r2: 4, c2: 1, reward: 10 },
+            B: { r: 0, c: 3, r2: 2, c2: 3, reward: 5 },
+        };
+
+        function isSpecial(r, c) {
+            if (r === SPECIAL.A.r && c === SPECIAL.A.c) return "A";
+            if (r === SPECIAL.B.r && c === SPECIAL.B.c) return "B";
+            return null;
+        }
+
+        function stepDynamics(r, c, action) {
+            const sp = isSpecial(r, c);
+            if (sp === "A") {
+                return { r2: SPECIAL.A.r2, c2: SPECIAL.A.c2, reward: SPECIAL.A.reward, special: "A" };
+            }
+            if (sp === "B") {
+                return { r2: SPECIAL.B.r2, c2: SPECIAL.B.c2, reward: SPECIAL.B.reward, special: "B" };
+            }
+
+            const nr = r + action.dr;
+            const nc = c + action.dc;
+            if (nr < 0 || nr >= GRID.rows || nc < 0 || nc >= GRID.cols) {
+                return { r2: r, c2: c, reward: -1, wall: true };
+            }
+            return { r2: nr, c2: nc, reward: 0 };
+        }
+
+        function backupPolicyEval(V, gamma, r, c) {
+            // random policy: uniform over actions
+            let sum = 0;
+            const details = [];
+            for (const a of ACTIONS) {
+                const out = stepDynamics(r, c, a);
+                const term = out.reward + gamma * V[idx(out.r2, out.c2, GRID.cols)];
+                sum += 0.25 * term;
+                details.push({ a: a.name, out, term, weight: 0.25 });
+            }
+            return { value: sum, details };
+        }
+
+        function backupValueIter(V, gamma, r, c) {
+            let best = -Infinity;
+            let bestAs = [];
+            const details = [];
+            for (const a of ACTIONS) {
+                const out = stepDynamics(r, c, a);
+                const term = out.reward + gamma * V[idx(out.r2, out.c2, GRID.cols)];
+                details.push({ a: a.name, out, term });
+                if (term > best + 1e-12) {
+                    best = term; bestAs = [a.name];
+                } else if (Math.abs(term - best) <= 1e-12) {
+                    bestAs.push(a.name);
+                }
+            }
+            return { value: best, details, greedyActions: bestAs };
+        }
+
+        function greedyPolicyFromV(V, gamma, r, c) {
+            const b = backupValueIter(V, gamma, r, c);
+            return b.greedyActions;
+        }
+
+        /* =========================
+           Plot helpers
+        ========================= */
+        function drawAxes(ctx, w, h, pad, title, yLabel, xLabel) {
+            ctx.clearRect(0, 0, w, h);
+            ctx.strokeStyle = "rgba(255,255,255,0.10)";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(pad, pad, w - 2 * pad, h - 2 * pad);
+
+            const gx = 6, gy = 5;
+            for (let i = 1; i < gx; i++) {
+                const x = pad + i * (w - 2 * pad) / gx;
+                ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, h - pad); ctx.stroke();
+            }
+            for (let j = 1; j < gy; j++) {
+                const y = pad + j * (h - 2 * pad) / gy;
+                ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(w - pad, y); ctx.stroke();
+            }
+
+            ctx.fillStyle = "rgba(233,238,252,0.90)";
+            ctx.font = "12px ui-sans-serif, system-ui";
+            ctx.fillText(title, pad + 6, pad - 8);
+
+            ctx.fillStyle = "rgba(169,180,214,0.95)";
+            ctx.font = "11px ui-sans-serif, system-ui";
+            ctx.fillText(yLabel, 8, pad + 10);
+            ctx.fillText(xLabel, w - pad - 70, h - 10);
+        }
+
+        function plotLine(ctx, w, h, pad, data, color) {
+            if (!data.length) return;
+            let lo = Math.min(...data), hi = Math.max(...data);
+            if (!isFinite(lo) || !isFinite(hi)) { lo = 0; hi = 1; }
+            const padY = (hi - lo) * 0.08 || 1e-6;
+            lo = Math.max(0, lo - padY);
+            hi = hi + padY;
+            if (lo === hi) { hi = lo + 1; }
+
+            const n = data.length;
+            const X = (i) => pad + (i / (n - 1 || 1)) * (w - 2 * pad);
+            const Y = (v) => pad + (1 - (v - lo) / (hi - lo)) * (h - 2 * pad);
+
+            // y ticks
+            ctx.fillStyle = "rgba(169,180,214,0.85)";
+            ctx.font = "10px ui-monospace, Menlo, Monaco, Consolas";
+            const ticks = 4;
+            for (let j = 0; j <= ticks; j++) {
+                const v = lo + (j / ticks) * (hi - lo);
+                const y = Y(v);
+                ctx.fillText(v.toExponential(2), pad + 6, y - 2);
+            }
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(X(0), Y(data[0]));
+            for (let i = 1; i < n; i++) ctx.lineTo(X(i), Y(data[i]));
+            ctx.stroke();
+        }
+
+        /* =========================
+           UI refs
+        ========================= */
+        const ui = {
+            mode: document.getElementById("mode"),
+            gamma: document.getElementById("gamma"),
+            speed: document.getElementById("speed"),
+            tol: document.getElementById("tol"),
+            initV: document.getElementById("initV"),
+            showOverlay: document.getElementById("showOverlay"),
+
+            gammaVal: document.getElementById("gammaVal"),
+            speedVal: document.getElementById("speedVal"),
+            tolVal: document.getElementById("tolVal"),
+
+            reset: document.getElementById("reset"),
+            step: document.getElementById("step"),
+            play: document.getElementById("play"),
+            stop: document.getElementById("stop"),
+
+            sweepChip: document.getElementById("sweepChip"),
+            deltaChip: document.getElementById("deltaChip"),
+            stateChip: document.getElementById("stateChip"),
+
+            progBar: document.getElementById("progBar"),
+
+            backupHint: document.getElementById("backupHint"),
+            backupTable: document.getElementById("backupTable").querySelector("tbody"),
+            backupFormula: document.getElementById("backupFormula"),
+
+            gridCanvas: document.getElementById("gridCanvas"),
+            deltaCanvas: document.getElementById("deltaCanvas"),
+            gridLegend: document.getElementById("gridLegend"),
+            deltaLegend: document.getElementById("deltaLegend"),
+        };
+
+        const COLORS = {
+            accent: "rgba(122,162,255,0.95)",
+            good: "rgba(118,247,196,0.95)",
+            warn: "rgba(255,204,102,0.95)",
+            bad: "rgba(255,107,107,0.95)",
+            faint: "rgba(233,238,252,0.20)",
+            text: "rgba(233,238,252,0.95)",
+            muted: "rgba(169,180,214,0.90)",
+            grid: "rgba(255,255,255,0.12)",
+        };
+
+        /* =========================
+           State
+        ========================= */
+        let V = new Float64Array(GRID.rows * GRID.cols);
+        let sweep = 0;
+        let lastMaxDelta = 0;
+        let deltas = [];
+        let selected = null; // {r,c}
+        let playing = false;
+        let rafId = null;
+        let lastTime = 0;
+
+        function syncLabels() {
+            ui.gammaVal.textContent = parseFloat(ui.gamma.value).toFixed(2);
+            ui.speedVal.textContent = ui.speed.value;
+            ui.tolVal.textContent = parseFloat(ui.tol.value).toFixed(4);
+        }
+        ui.gamma.addEventListener("input", syncLabels);
+        ui.speed.addEventListener("input", syncLabels);
+        ui.tol.addEventListener("input", syncLabels);
+
+        function resetAll() {
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = null;
+            playing = false;
+            ui.play.textContent = "Play";
+
+            sweep = 0;
+            lastMaxDelta = 0;
+            deltas = [];
+            selected = null;
+
+            if (ui.initV.value === "random") {
+                for (let i = 0; i < V.length; i++) V[i] = 0.01 * randn();
+            } else {
+                V.fill(0);
+            }
+
+            ui.sweepChip.textContent = "0";
+            ui.deltaChip.textContent = "–";
+            ui.stateChip.textContent = "–";
+            ui.progBar.style.width = "0%";
+
+            renderAll();
+            renderBackupPanel();
+        }
+
+        function oneSweep() {
+            const gamma = parseFloat(ui.gamma.value);
+            const mode = ui.mode.value;
+
+            const Vnew = new Float64Array(V.length);
+            let maxDelta = 0;
+
+            for (let r = 0; r < GRID.rows; r++) {
+                for (let c = 0; c < GRID.cols; c++) {
+                    const i = idx(r, c, GRID.cols);
+                    let target;
+                    if (mode === "policy") {
+                        target = backupPolicyEval(V, gamma, r, c).value;
+                    } else {
+                        target = backupValueIter(V, gamma, r, c).value;
+                    }
+                    Vnew[i] = target;
+                    const d = Math.abs(target - V[i]);
+                    if (d > maxDelta) maxDelta = d;
+                }
+            }
+
+            V = Vnew;
+            sweep += 1;
+            lastMaxDelta = maxDelta;
+            deltas.push(maxDelta);
+
+            ui.sweepChip.textContent = String(sweep);
+            ui.deltaChip.textContent = maxDelta.toExponential(2);
+
+            // progress bar heuristic: based on tol
+            const tol = parseFloat(ui.tol.value);
+            const pct = clamp(1 - (maxDelta / (tol * 50)), 0, 1) * 100; // just a visual cue
+            ui.progBar.style.width = pct.toFixed(0) + "%";
+
+            renderAll();
+            renderBackupPanel();
+        }
+
+        function playLoop(ts) {
+            if (!playing) return;
+
+            const speed = parseInt(ui.speed.value, 10); // sweeps per sec
+            if (!lastTime) lastTime = ts;
+            const dt = (ts - lastTime) / 1000;
+            const sweepsToDo = Math.floor(dt * speed);
+
+            if (sweepsToDo > 0) {
+                lastTime = ts;
+                for (let i = 0; i < sweepsToDo; i++) {
+                    oneSweep();
+                    const tol = parseFloat(ui.tol.value);
+                    if (lastMaxDelta < tol) {
+                        playing = false;
+                        ui.play.textContent = "Play";
+                        lastTime = 0;
+                        break;
+                    }
+                }
+            }
+
+            rafId = requestAnimationFrame(playLoop);
+        }
+
+        /* =========================
+           Rendering: Grid
+        ========================= */
+        function setLegend(el, items) {
+            el.innerHTML = "";
+            for (const it of items) {
+                const d = document.createElement("div");
+                d.className = "legItem";
+                const sw = document.createElement("div");
+                sw.className = "swatch";
+                sw.style.background = it.color;
+                d.appendChild(sw);
+                const t = document.createElement("div");
+                t.textContent = it.label;
+                d.appendChild(t);
+                el.appendChild(d);
+            }
+        }
+
+        function drawArrow(ctx, x1, y1, x2, y2, color) {
+            const head = 8;
+            const dx = x2 - x1, dy = y2 - y1;
+            const ang = Math.atan2(dy, dx);
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - head * Math.cos(ang - Math.PI / 6), y2 - head * Math.sin(ang - Math.PI / 6));
+            ctx.lineTo(x2 - head * Math.cos(ang + Math.PI / 6), y2 - head * Math.sin(ang + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function renderGrid() {
+            const canvas = ui.gridCanvas;
+            const ctx = canvas.getContext("2d");
+            const w = canvas.width, h = canvas.height;
+
+            ctx.clearRect(0, 0, w, h);
+
+            const pad = 26;
+            const gridW = w - 2 * pad;
+            const gridH = h - 2 * pad;
+            const cellW = gridW / GRID.cols;
+            const cellH = gridH / GRID.rows;
+
+            // background
+            ctx.fillStyle = "rgba(0,0,0,0.0)";
+            ctx.fillRect(0, 0, w, h);
+
+            // compute min/max for coloring values
+            let vMin = Infinity, vMax = -Infinity;
+            for (let i = 0; i < V.length; i++) {
+                vMin = Math.min(vMin, V[i]);
+                vMax = Math.max(vMax, V[i]);
+            }
+            if (!isFinite(vMin) || !isFinite(vMax) || vMin === vMax) { vMin = -1; vMax = 1; }
+
+            // draw cells
+            for (let r = 0; r < GRID.rows; r++) {
+                for (let c = 0; c < GRID.cols; c++) {
+                    const x = pad + c * cellW;
+                    const y = pad + r * cellH;
+                    const i = idx(r, c, GRID.cols);
+
+                    // heat tint based on value
+                    const t = (V[i] - vMin) / (vMax - vMin);
+                    // blend between bad (red-ish) and good (green-ish) subtly
+                    const alpha = 0.18;
+                    const rr = 255 * (1 - t);
+                    const gg = 255 * (t);
+                    ctx.fillStyle = `rgba(${rr.toFixed(0)}, ${gg.toFixed(0)}, 140, ${alpha})`;
+                    ctx.fillRect(x, y, cellW, cellH);
+
+                    // selection highlight
+                    if (selected && selected.r === r && selected.c === c) {
+                        ctx.strokeStyle = COLORS.accent;
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(x + 1.5, y + 1.5, cellW - 3, cellH - 3);
+                    }
+
+                    // special labels
+                    const sp = isSpecial(r, c);
+                    if (sp) {
+                        ctx.fillStyle = sp === "A" ? COLORS.warn : COLORS.good;
+                        ctx.globalAlpha = 0.18;
+                        ctx.fillRect(x, y, cellW, cellH);
+                        ctx.globalAlpha = 1;
+                    }
+
+                    // text: value
+                    const overlay = ui.showOverlay.value;
+                    if (overlay === "values") {
+                        ctx.fillStyle = COLORS.text;
+                        ctx.font = "14px ui-monospace, Menlo, Monaco, Consolas";
+                        ctx.textAlign = "center";
+                        ctx.textBaseline = "middle";
+                        ctx.fillText(V[i].toFixed(1), x + cellW / 2, y + cellH / 2);
+                    } else {
+                        // reward dynamics view: show special teleport & wall reward note
+                        ctx.fillStyle = COLORS.muted;
+                        ctx.font = "12px ui-monospace, Menlo, Monaco, Consolas";
+                        ctx.textAlign = "center";
+                        ctx.textBaseline = "middle";
+                        const sp2 = isSpecial(r, c);
+                        if (sp2 === "A") ctx.fillText("A: +10 → A′", x + cellW / 2, y + cellH / 2);
+                        else if (sp2 === "B") ctx.fillText("B: +5 → B′", x + cellW / 2, y + cellH / 2);
+                        else ctx.fillText("0 (walls: −1)", x + cellW / 2, y + cellH / 2);
+                    }
+
+                    // special markers A/B
+                    if (isSpecial(r, c)) {
+                        ctx.font = "12px ui-sans-serif, system-ui";
+                        ctx.textAlign = "left";
+                        ctx.textBaseline = "top";
+                        ctx.fillStyle = COLORS.text;
+                        ctx.fillText(isSpecial(r, c), x + 6, y + 6);
+                    }
+                }
+            }
+
+            // grid lines
+            ctx.strokeStyle = COLORS.grid;
+            ctx.lineWidth = 1;
+            for (let r = 0; r <= GRID.rows; r++) {
+                const y = pad + r * cellH;
+                ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(pad + gridW, y); ctx.stroke();
+            }
+            for (let c = 0; c <= GRID.cols; c++) {
+                const x = pad + c * cellW;
+                ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, pad + gridH); ctx.stroke();
+            }
+
+            // overlay: policy arrows (random policy shows all arrows faint; optimal shows greedy arrow(s))
+            if (ui.showOverlay.value === "values") {
+                const gamma = parseFloat(ui.gamma.value);
+                const mode = ui.mode.value;
+                for (let r = 0; r < GRID.rows; r++) {
+                    for (let c = 0; c < GRID.cols; c++) {
+                        const x = pad + c * cellW;
+                        const y = pad + r * cellH;
+                        const cx = x + cellW / 2;
+                        const cy = y + cellH / 2;
+
+                        const sp = isSpecial(r, c);
+                        // for A/B, draw a teleport arrow to A'/B'
+                        if (sp) {
+                            const dst = sp === "A" ? { r: SPECIAL.A.r2, c: SPECIAL.A.c2 } : { r: SPECIAL.B.r2, c: SPECIAL.B.c2 };
+                            const dx = (dst.c - c);
+                            const dy = (dst.r - r);
+                            const mag = Math.max(Math.abs(dx), Math.abs(dy), 1);
+                            const tx = cx + (dx / mag) * cellW * 0.35;
+                            const ty = cy + (dy / mag) * cellH * 0.35;
+                            drawArrow(ctx, cx, cy, tx, ty, sp === "A" ? COLORS.warn : COLORS.good);
+                            continue;
+                        }
+
+                        if (mode === "policy") {
+                            // random policy: show 4 arrows faint
+                            for (const a of ACTIONS) {
+                                const tx = cx + a.dc * cellW * 0.22;
+                                const ty = cy + a.dr * cellH * 0.22;
+                                drawArrow(ctx, cx, cy, tx, ty, "rgba(233,238,252,0.18)");
+                            }
+                        } else {
+                            // value iteration: greedy actions
+                            const greedyAs = greedyPolicyFromV(V, gamma, r, c);
+                            for (const aName of greedyAs) {
+                                const a = ACTIONS.find(x => x.name === aName);
+                                const tx = cx + a.dc * cellW * 0.28;
+                                const ty = cy + a.dr * cellH * 0.28;
+                                drawArrow(ctx, cx, cy, tx, ty, COLORS.accent);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // annotate A' and B' positions
+            ctx.fillStyle = COLORS.muted;
+            ctx.font = "12px ui-sans-serif, system-ui";
+            ctx.textAlign = "left";
+            ctx.textBaseline = "bottom";
+            ctx.fillText("A′", pad + SPECIAL.A.c2 * cellW + 6, pad + (SPECIAL.A.r2 + 1) * cellH - 6);
+            ctx.fillText("B′", pad + SPECIAL.B.c2 * cellW + 6, pad + (SPECIAL.B.r2 + 1) * cellH - 6);
+
+            // Legend
+            setLegend(ui.gridLegend, [
+                { label: "Special A (+10 → A′)", color: "rgba(255,204,102,0.95)" },
+                { label: "Special B (+5 → B′)", color: "rgba(118,247,196,0.95)" },
+                { label: "Wall bump reward −1", color: "rgba(255,107,107,0.95)" },
+                { label: "Greedy policy arrows (value iteration)", color: "rgba(122,162,255,0.95)" },
+            ]);
+        }
+
+        function renderDelta() {
+            const canvas = ui.deltaCanvas;
+            const ctx = canvas.getContext("2d");
+            const w = canvas.width, h = canvas.height;
+            const pad = 34;
+
+            drawAxes(ctx, w, h, pad, "Max Δ per sweep", "Δ", "sweeps");
+            plotLine(ctx, w, h, pad, deltas, COLORS.accent);
+
+            setLegend(ui.deltaLegend, [{ label: "max |V_new − V|", color: COLORS.accent }]);
+        }
+
+        function renderAll() {
+            renderGrid();
+            renderDelta();
+        }
+
+        /* =========================
+           Backup panel
+        ========================= */
+        function renderBackupPanel() {
+            ui.backupTable.innerHTML = "";
+            const gamma = parseFloat(ui.gamma.value);
+            const mode = ui.mode.value;
+
+            if (!selected) {
+                ui.backupHint.textContent = "Click a state to see its Bellman backup terms.";
+                ui.backupFormula.textContent = "V(s) update will appear here after you select a state.";
+                return;
+            }
+
+            const r = selected.r, c = selected.c;
+            ui.stateChip.textContent = `(${r},${c})` + (isSpecial(r, c) ? ` [${isSpecial(r, c)}]` : "");
+            ui.backupHint.textContent = mode === "policy"
+                ? "Policy evaluation: π(a|s)=0.25 for N,S,E,W."
+                : "Value iteration: take max over actions.";
+
+            let result;
+            if (mode === "policy") {
+                result = backupPolicyEval(V, gamma, r, c);
+                for (const row of result.details) {
+                    const tr = document.createElement("tr");
+                    const ns = `(${row.out.r2},${row.out.c2})`;
+                    const tdA = document.createElement("td"); tdA.textContent = row.a;
+                    const tdS = document.createElement("td"); tdS.textContent = ns;
+                    const tdR = document.createElement("td"); tdR.textContent = row.out.reward.toFixed(1);
+                    const tdT = document.createElement("td"); tdT.textContent = `0.25 × (${row.out.reward.toFixed(1)} + γ·V(s′)) = ${(row.weight * row.term).toFixed(3)}`;
+                    tr.appendChild(tdA); tr.appendChild(tdS); tr.appendChild(tdR); tr.appendChild(tdT);
+                    ui.backupTable.appendChild(tr);
+                }
+                ui.backupFormula.textContent =
+                    `V(s) ← Σ_a 0.25·[ r + γ V(s′) ] = ${result.value.toFixed(4)}   (γ=${gamma.toFixed(2)})`;
+            } else {
+                result = backupValueIter(V, gamma, r, c);
+                for (const row of result.details) {
+                    const tr = document.createElement("tr");
+                    const ns = `(${row.out.r2},${row.out.c2})`;
+                    const tdA = document.createElement("td"); tdA.textContent = row.a;
+                    const tdS = document.createElement("td"); tdS.textContent = ns;
+                    const tdR = document.createElement("td"); tdR.textContent = row.out.reward.toFixed(1);
+                    const tdT = document.createElement("td");
+                    const star = result.greedyActions.includes(row.a) ? "  ★" : "";
+                    tdT.textContent = `(r + γ·V(s′)) = ${row.term.toFixed(4)}${star}`;
+                    tr.appendChild(tdA); tr.appendChild(tdS); tr.appendChild(tdR); tr.appendChild(tdT);
+                    ui.backupTable.appendChild(tr);
+                }
+                ui.backupFormula.textContent =
+                    `V(s) ← max_a [ r + γ V(s′) ] = ${result.value.toFixed(4)}   (greedy: ${result.greedyActions.join(", ")})`;
+            }
+        }
+
+        /* =========================
+           Interaction: clicking grid
+        ========================= */
+        ui.gridCanvas.addEventListener("click", (e) => {
+            const rect = ui.gridCanvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (ui.gridCanvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (ui.gridCanvas.height / rect.height);
+
+            const pad = 26;
+            const gridW = ui.gridCanvas.width - 2 * pad;
+            const gridH = ui.gridCanvas.height - 2 * pad;
+            const cellW = gridW / GRID.cols;
+            const cellH = gridH / GRID.rows;
+
+            const c = Math.floor((x - pad) / cellW);
+            const r = Math.floor((y - pad) / cellH);
+            if (r >= 0 && r < GRID.rows && c >= 0 && c < GRID.cols) {
+                selected = { r, c };
+                ui.stateChip.textContent = `(${r},${c})`;
+                renderAll();
+                renderBackupPanel();
+            }
+        });
+
+        /* =========================
+           Buttons wiring
+        ========================= */
+        ui.reset.addEventListener("click", resetAll);
+        ui.step.addEventListener("click", () => oneSweep());
+
+        ui.play.addEventListener("click", () => {
+            if (!playing) {
+                playing = true;
+                ui.play.textContent = "Pause";
+                lastTime = 0;
+                rafId = requestAnimationFrame(playLoop);
+            } else {
+                playing = false;
+                ui.play.textContent = "Play";
+            }
+        });
+
+        ui.stop.addEventListener("click", () => {
+            playing = false;
+            ui.play.textContent = "Play";
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = null;
+            lastTime = 0;
+        });
+
+        ui.mode.addEventListener("change", () => {
+            // keep values, just change backup operator
+            renderAll();
+            renderBackupPanel();
+        });
+
+        ui.showOverlay.addEventListener("change", () => {
+            renderAll();
+        });
+
+        /* =========================
+           Init
+        ========================= */
+        syncLabels();
+        resetAll();
+    </script>
+</body>
+
+</html>

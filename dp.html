@@ -1,1 +1,739 @@
-[[work in progress]]
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dynamic Programming (DP)</title>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --panel: #121a33;
+            --panel2: #0f1630;
+            --text: #e9eefc;
+            --muted: #a9b4d6;
+            --accent: #7aa2ff;
+            --good: #76f7c4;
+            --warn: #ffcc66;
+            --bad: #ff6b6b;
+            --line: #24305a;
+            --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+            background: radial-gradient(1200px 700px at 20% 10%, #1a2550 0%, var(--bg) 60%) fixed;
+            color: var(--text);
+        }
+
+        header {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+            background: rgba(0, 0, 0, .18);
+            position: sticky;
+            top: 0;
+            backdrop-filter: blur(6px);
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        header h1 {
+            font-size: 15px;
+            margin: 0;
+            letter-spacing: .2px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            font-size: 12px;
+            padding: 3px 8px;
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .04);
+            color: var(--muted);
+        }
+
+        nav a {
+            color: var(--muted);
+            text-decoration: none;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .04);
+            font-size: 12px;
+        }
+
+        nav a:hover {
+            background: rgba(255, 255, 255, .08);
+            color: var(--text);
+        }
+
+        .wrap {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 14px;
+            padding: 14px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 1000px) {
+            .wrap {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .03));
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card h2 {
+            margin: 0;
+            padding: 12px 14px;
+            font-size: 13px;
+            letter-spacing: .25px;
+            color: var(--muted);
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(255, 255, 255, .03);
+        }
+
+        .card .body {
+            padding: 12px 14px;
+        }
+
+        .help {
+            font-size: 12px;
+            line-height: 1.45;
+            color: var(--muted);
+        }
+
+        .kbd {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .22);
+            color: var(--text);
+        }
+
+        .split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .col {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chip {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, .25);
+            border: 1px solid rgba(255, 255, 255, .08);
+            color: var(--muted);
+        }
+
+        label {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="range"] {
+            width: 100%;
+        }
+
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 9px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .25);
+            color: var(--text);
+            outline: none;
+        }
+
+        select {
+            cursor: pointer;
+        }
+
+        .btn {
+            padding: 10px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .06);
+            color: var(--text);
+            cursor: pointer;
+            user-select: none;
+            font-weight: 600;
+            letter-spacing: .2px;
+            transition: transform .05s ease, background .12s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, .10);
+        }
+
+        .btn:active {
+            transform: scale(.99);
+        }
+
+        .btn.primary {
+            background: rgba(122, 162, 255, .18);
+            border-color: rgba(122, 162, 255, .35);
+        }
+
+        .btn.primary:hover {
+            background: rgba(122, 162, 255, .24);
+        }
+
+        .btn.danger {
+            background: rgba(255, 107, 107, .14);
+            border-color: rgba(255, 107, 107, .35);
+        }
+
+        .btn.danger:hover {
+            background: rgba(255, 107, 107, .2);
+        }
+
+        .canvasWrap {
+            background: rgba(0, 0, 0, .22);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 14px;
+            padding: 10px;
+            position: relative;
+        }
+
+        .miniTitle {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        canvas {
+            width: 100%;
+            display: block;
+            border-radius: 10px;
+            background: #0b1228;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 6px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+        }
+
+        th {
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .swatch {
+            width: 12px;
+            height: 12px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, .16);
+        }
+
+        .math {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+            background: rgba(0, 0, 0, .2);
+            padding: 8px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .08);
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>
+            Dynamic Programming
+            <span class="tag">Policy Evaluation</span>
+            <span class="tag">Policy Improvement</span>
+            <span class="tag">Value Iteration</span>
+        </h1>
+        <nav class="row">
+            <a href="index.html">← Home</a>
+        </nav>
+    </header>
+
+    <div class="wrap">
+        <section class="card">
+            <h2>Controls</h2>
+            <div class="body">
+                <div class="col">
+                    <label>Algorithm</label>
+                    <select id="algo">
+                        <option value="eval" selected>Policy evaluation (uniform random policy)</option>
+                        <option value="value">Value iteration (optimality backup)</option>
+                    </select>
+                </div>
+
+                <div class="spacer" style="height:10px;"></div>
+
+                <div class="split">
+                    <div class="col">
+                        <label>Discount γ <span class="kbd" id="gammaVal">0.90</span></label>
+                        <input id="gamma" type="range" min="0" max="0.99" value="0.9" step="0.01" />
+                    </div>
+                    <div class="col">
+                        <label>Initialization</label>
+                        <select id="initV">
+                            <option value="zeros" selected>0 everywhere</option>
+                            <option value="random">Small random</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="spacer" style="height:10px;"></div>
+
+                <div class="row">
+                    <button class="btn primary" id="reset">Reset</button>
+                    <button class="btn" id="step">Step (one sweep)</button>
+                    <button class="btn" id="play">Play</button>
+                    <button class="btn danger" id="stop">Stop</button>
+                </div>
+
+                <div style="margin-top:12px;">
+                    <div class="chips">
+                        <div class="chip">sweep: <b id="sweepChip">0</b></div>
+                        <div class="chip">max Δ: <b id="deltaChip">–</b></div>
+                        <div class="chip">selected state: <b id="stateChip">–</b></div>
+                    </div>
+                </div>
+            </div>
+
+            <h2>DP chapter cheat sheet</h2>
+            <div class="body">
+                <div class="help">
+                    Dynamic programming in Sutton &amp; Barto is about solving known MDPs by
+                    iterating Bellman backups. The key ingredients are a model (P, R), a policy π,
+                    and a value function V or Q. The three canonical algorithms are:
+                </div>
+                <div class="spacer" style="height:10px;"></div>
+                <ul class="help" style="margin:0 0 8px 18px; padding:0;">
+                    <li><b>Policy evaluation</b>: repeatedly apply the Bellman <i>expectation</i> backup until Vπ converges.</li>
+                    <li><b>Policy improvement</b>: make π greedy w.r.t. Vπ to get a better policy.</li>
+                    <li><b>Value iteration</b>: apply the Bellman <i>optimality</i> backup until V* converges.</li>
+                </ul>
+                <div class="math">V(s) ← Σ<sub>a</sub> π(a|s) Σ<sub>s'</sub> P(s'|s,a) [R + γ V(s')]</div>
+                <div class="spacer" style="height:8px;"></div>
+                <div class="math">V(s) ← max<sub>a</sub> Σ<sub>s'</sub> P(s'|s,a) [R + γ V(s')]</div>
+            </div>
+
+            <h2>Selected-state backup</h2>
+            <div class="body">
+                <div class="help" id="backupHint">Click a grid cell to inspect its Bellman backup terms.</div>
+                <div class="spacer" style="height:10px;"></div>
+                <table id="backupTable">
+                    <thead>
+                        <tr>
+                            <th>action</th>
+                            <th>next state</th>
+                            <th>reward</th>
+                            <th>backup term</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div class="spacer" style="height:10px;"></div>
+                <div class="math" id="backupFormula">Select a state to view its update formula.</div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Visualization</h2>
+            <div class="body">
+                <div class="canvasWrap">
+                    <div class="miniTitle"><span>4×4 gridworld</span> <b>Values + greedy arrows</b></div>
+                    <canvas id="gridCanvas" width="1000" height="600"></canvas>
+                    <div class="legend">
+                        <span><span class="swatch" style="background:#1b2657"></span> low value</span>
+                        <span><span class="swatch" style="background:#7aa2ff"></span> high value</span>
+                        <span><span class="swatch" style="background:#76f7c4"></span> greedy action</span>
+                    </div>
+                </div>
+
+                <div style="height:12px;"></div>
+
+                <div class="canvasWrap">
+                    <div class="miniTitle"><span>Convergence</span> <b>max Δ per sweep</b></div>
+                    <canvas id="deltaCanvas" width="1000" height="280" style="height:280px;"></canvas>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const GRID = { rows: 4, cols: 4 };
+        const ACTIONS = [
+            { name: "N", dr: -1, dc: 0 },
+            { name: "S", dr: 1, dc: 0 },
+            { name: "W", dr: 0, dc: -1 },
+            { name: "E", dr: 0, dc: 1 },
+        ];
+        const TERMINALS = [
+            { r: 0, c: 0 },
+            { r: GRID.rows - 1, c: GRID.cols - 1 },
+        ];
+        const STEP_REWARD = -1;
+
+        const algoEl = document.getElementById("algo");
+        const gammaEl = document.getElementById("gamma");
+        const gammaValEl = document.getElementById("gammaVal");
+        const initEl = document.getElementById("initV");
+        const sweepChip = document.getElementById("sweepChip");
+        const deltaChip = document.getElementById("deltaChip");
+        const stateChip = document.getElementById("stateChip");
+        const backupTable = document.getElementById("backupTable").querySelector("tbody");
+        const backupFormula = document.getElementById("backupFormula");
+        const backupHint = document.getElementById("backupHint");
+
+        const gridCanvas = document.getElementById("gridCanvas");
+        const gridCtx = gridCanvas.getContext("2d");
+        const deltaCanvas = document.getElementById("deltaCanvas");
+        const deltaCtx = deltaCanvas.getContext("2d");
+
+        let V = new Array(GRID.rows * GRID.cols).fill(0);
+        let sweep = 0;
+        let deltas = [];
+        let timer = null;
+        let selected = null;
+
+        function idx(r, c) {
+            return r * GRID.cols + c;
+        }
+
+        function isTerminal(r, c) {
+            return TERMINALS.some(t => t.r === r && t.c === c);
+        }
+
+        function stepDynamics(r, c, action) {
+            const nr = r + action.dr;
+            const nc = c + action.dc;
+            if (nr < 0 || nr >= GRID.rows || nc < 0 || nc >= GRID.cols) {
+                return { r2: r, c2: c, reward: STEP_REWARD };
+            }
+            return { r2: nr, c2: nc, reward: STEP_REWARD };
+        }
+
+        function backupEvaluation(r, c, gamma) {
+            let sum = 0;
+            const details = [];
+            for (const a of ACTIONS) {
+                const out = stepDynamics(r, c, a);
+                const term = out.reward + gamma * V[idx(out.r2, out.c2)];
+                sum += 0.25 * term;
+                details.push({ a: a.name, out, term, weight: 0.25 });
+            }
+            return { value: sum, details };
+        }
+
+        function backupOptimality(r, c, gamma) {
+            let best = -Infinity;
+            const details = [];
+            for (const a of ACTIONS) {
+                const out = stepDynamics(r, c, a);
+                const term = out.reward + gamma * V[idx(out.r2, out.c2)];
+                details.push({ a: a.name, out, term });
+                best = Math.max(best, term);
+            }
+            return { value: best, details };
+        }
+
+        function greedyActions(r, c, gamma) {
+            let best = -Infinity;
+            let bestAs = [];
+            for (const a of ACTIONS) {
+                const out = stepDynamics(r, c, a);
+                const term = out.reward + gamma * V[idx(out.r2, out.c2)];
+                if (term > best + 1e-12) {
+                    best = term;
+                    bestAs = [a];
+                } else if (Math.abs(term - best) <= 1e-12) {
+                    bestAs.push(a);
+                }
+            }
+            return bestAs;
+        }
+
+        function sweepOnce() {
+            const gamma = parseFloat(gammaEl.value);
+            const next = V.slice();
+            let maxDelta = 0;
+            for (let r = 0; r < GRID.rows; r++) {
+                for (let c = 0; c < GRID.cols; c++) {
+                    if (isTerminal(r, c)) {
+                        next[idx(r, c)] = 0;
+                        continue;
+                    }
+                    const backup = algoEl.value === "value"
+                        ? backupOptimality(r, c, gamma)
+                        : backupEvaluation(r, c, gamma);
+                    const i = idx(r, c);
+                    const delta = Math.abs(backup.value - V[i]);
+                    maxDelta = Math.max(maxDelta, delta);
+                    next[i] = backup.value;
+                }
+            }
+            V = next;
+            sweep += 1;
+            deltas.push(maxDelta);
+            sweepChip.textContent = sweep;
+            deltaChip.textContent = maxDelta.toFixed(4);
+            if (selected) {
+                updateBackup(selected.r, selected.c);
+            }
+            draw();
+        }
+
+        function resetAll() {
+            const init = initEl.value;
+            V = V.map((_, i) => {
+                if (isTerminal(Math.floor(i / GRID.cols), i % GRID.cols)) return 0;
+                if (init === "random") return (Math.random() - 0.5) * 0.5;
+                return 0;
+            });
+            sweep = 0;
+            deltas = [];
+            sweepChip.textContent = "0";
+            deltaChip.textContent = "–";
+            draw();
+        }
+
+        function drawGrid() {
+            const w = gridCanvas.width;
+            const h = gridCanvas.height;
+            gridCtx.clearRect(0, 0, w, h);
+            const pad = 20;
+            const cellW = (w - 2 * pad) / GRID.cols;
+            const cellH = (h - 2 * pad) / GRID.rows;
+
+            const minV = Math.min(...V);
+            const maxV = Math.max(...V);
+            const range = Math.max(1e-6, maxV - minV);
+
+            for (let r = 0; r < GRID.rows; r++) {
+                for (let c = 0; c < GRID.cols; c++) {
+                    const i = idx(r, c);
+                    const x = pad + c * cellW;
+                    const y = pad + r * cellH;
+                    const v = V[i];
+                    const t = (v - minV) / range;
+                    const color = `rgba(122, 162, 255, ${0.15 + 0.65 * t})`;
+                    gridCtx.fillStyle = color;
+                    gridCtx.fillRect(x, y, cellW, cellH);
+                    gridCtx.strokeStyle = "rgba(255,255,255,0.15)";
+                    gridCtx.strokeRect(x, y, cellW, cellH);
+
+                    if (isTerminal(r, c)) {
+                        gridCtx.fillStyle = "rgba(118, 247, 196, 0.25)";
+                        gridCtx.fillRect(x, y, cellW, cellH);
+                    }
+
+                    gridCtx.fillStyle = "#e9eefc";
+                    gridCtx.font = "14px ui-monospace";
+                    gridCtx.fillText(v.toFixed(2), x + 8, y + 18);
+
+                    if (!isTerminal(r, c)) {
+                        const actions = greedyActions(r, c, parseFloat(gammaEl.value));
+                        gridCtx.strokeStyle = "#76f7c4";
+                        gridCtx.lineWidth = 2;
+                        actions.forEach(a => {
+                            const cx = x + cellW / 2;
+                            const cy = y + cellH / 2 + 6;
+                            const dx = a.dc * (cellW * 0.18);
+                            const dy = a.dr * (cellH * 0.18);
+                            gridCtx.beginPath();
+                            gridCtx.moveTo(cx, cy);
+                            gridCtx.lineTo(cx + dx, cy + dy);
+                            gridCtx.stroke();
+                            gridCtx.beginPath();
+                            gridCtx.arc(cx + dx, cy + dy, 3, 0, Math.PI * 2);
+                            gridCtx.fillStyle = "#76f7c4";
+                            gridCtx.fill();
+                        });
+                    }
+
+                    if (selected && selected.r === r && selected.c === c) {
+                        gridCtx.strokeStyle = "#ffcc66";
+                        gridCtx.lineWidth = 3;
+                        gridCtx.strokeRect(x + 2, y + 2, cellW - 4, cellH - 4);
+                    }
+                }
+            }
+        }
+
+        function drawDelta() {
+            const w = deltaCanvas.width;
+            const h = deltaCanvas.height;
+            deltaCtx.clearRect(0, 0, w, h);
+            const pad = 30;
+            deltaCtx.strokeStyle = "rgba(255,255,255,0.12)";
+            deltaCtx.strokeRect(pad, pad, w - 2 * pad, h - 2 * pad);
+
+            if (deltas.length === 0) return;
+            const maxD = Math.max(...deltas);
+            const len = deltas.length;
+            deltaCtx.strokeStyle = "#7aa2ff";
+            deltaCtx.lineWidth = 2;
+            deltaCtx.beginPath();
+            deltas.forEach((d, i) => {
+                const x = pad + (i / Math.max(1, len - 1)) * (w - 2 * pad);
+                const y = h - pad - (d / Math.max(1e-6, maxD)) * (h - 2 * pad);
+                if (i === 0) deltaCtx.moveTo(x, y);
+                else deltaCtx.lineTo(x, y);
+            });
+            deltaCtx.stroke();
+
+            deltaCtx.fillStyle = "#a9b4d6";
+            deltaCtx.font = "12px ui-monospace";
+            deltaCtx.fillText(`max Δ: ${maxD.toFixed(3)}`, pad + 6, pad + 14);
+        }
+
+        function draw() {
+            drawGrid();
+            drawDelta();
+        }
+
+        function updateBackup(r, c) {
+            selected = { r, c };
+            stateChip.textContent = `(${r}, ${c})`;
+            backupTable.innerHTML = "";
+            if (isTerminal(r, c)) {
+                backupHint.textContent = "Terminal states are fixed at value 0.";
+                backupFormula.textContent = "V(s) = 0 (terminal).";
+                return;
+            }
+            const gamma = parseFloat(gammaEl.value);
+            const backup = algoEl.value === "value"
+                ? backupOptimality(r, c, gamma)
+                : backupEvaluation(r, c, gamma);
+            backupHint.textContent = "Bellman backup terms for selected state.";
+            backup.details.forEach(item => {
+                const tr = document.createElement("tr");
+                const nextLabel = `(${item.out.r2}, ${item.out.c2})`;
+                tr.innerHTML = `
+                    <td>${item.a}</td>
+                    <td>${nextLabel}</td>
+                    <td>${item.out.reward}</td>
+                    <td>${item.term.toFixed(3)}</td>
+                `;
+                backupTable.appendChild(tr);
+            });
+            if (algoEl.value === "value") {
+                backupFormula.textContent = `V(s) = max_a [ -1 + γ V(s') ] = ${backup.value.toFixed(3)}`;
+            } else {
+                backupFormula.textContent = `V(s) = average_a [ -1 + γ V(s') ] = ${backup.value.toFixed(3)}`;
+            }
+        }
+
+        gridCanvas.addEventListener("click", (e) => {
+            const rect = gridCanvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (gridCanvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (gridCanvas.height / rect.height);
+            const pad = 20;
+            const cellW = (gridCanvas.width - 2 * pad) / GRID.cols;
+            const cellH = (gridCanvas.height - 2 * pad) / GRID.rows;
+            const c = Math.floor((x - pad) / cellW);
+            const r = Math.floor((y - pad) / cellH);
+            if (r >= 0 && r < GRID.rows && c >= 0 && c < GRID.cols) {
+                updateBackup(r, c);
+                draw();
+            }
+        });
+
+        document.getElementById("step").addEventListener("click", sweepOnce);
+        document.getElementById("reset").addEventListener("click", () => {
+            resetAll();
+            updateBackup(1, 1);
+        });
+        document.getElementById("play").addEventListener("click", () => {
+            if (timer) return;
+            timer = setInterval(sweepOnce, 400);
+        });
+        document.getElementById("stop").addEventListener("click", () => {
+            clearInterval(timer);
+            timer = null;
+        });
+        gammaEl.addEventListener("input", () => {
+            gammaValEl.textContent = parseFloat(gammaEl.value).toFixed(2);
+            if (selected) updateBackup(selected.r, selected.c);
+            draw();
+        });
+        algoEl.addEventListener("change", () => {
+            if (selected) updateBackup(selected.r, selected.c);
+            draw();
+        });
+
+        gammaValEl.textContent = parseFloat(gammaEl.value).toFixed(2);
+        resetAll();
+        updateBackup(1, 1);
+    </script>
+</body>
+
+</html>

@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Dynamic Programming (DP)</title>
+    <title>Monte Carlo Methods</title>
     <style>
         :root {
             --bg: #0b1020;
@@ -311,10 +311,10 @@
 <body>
     <header>
         <h1>
-            Dynamic Programming
-            <span class="tag">Policy Evaluation</span>
-            <span class="tag">Policy Improvement</span>
-            <span class="tag">Value Iteration</span>
+            Monte Carlo Methods
+            <span class="tag">First-visit MC</span>
+            <span class="tag">Every-visit MC</span>
+            <span class="tag">Exploring Starts</span>
         </h1>
         <nav class="row">
             <a href="index.html">← Home</a>
@@ -326,10 +326,10 @@
             <h2>Controls</h2>
             <div class="body">
                 <div class="col">
-                    <label>Algorithm</label>
-                    <select id="algo">
-                        <option value="eval" selected>Policy evaluation (uniform random policy)</option>
-                        <option value="value">Value iteration (optimality backup)</option>
+                    <label>Return estimator</label>
+                    <select id="estimator">
+                        <option value="first" selected>First-visit MC</option>
+                        <option value="every">Every-visit MC</option>
                     </select>
                 </div>
 
@@ -341,10 +341,26 @@
                         <input id="gamma" type="range" min="0" max="0.99" value="0.9" step="0.01" />
                     </div>
                     <div class="col">
-                        <label>Initialization</label>
-                        <select id="initV">
-                            <option value="zeros" selected>0 everywhere</option>
-                            <option value="random">Small random</option>
+                        <label>Episodes / batch</label>
+                        <input id="episodes" type="number" min="1" max="200" value="20" />
+                    </div>
+                </div>
+
+                <div class="spacer" style="height:10px;"></div>
+
+                <div class="split">
+                    <div class="col">
+                        <label>Policy</label>
+                        <select id="policy">
+                            <option value="uniform" selected>Uniform random</option>
+                            <option value="epsilon">ε-soft (greedy from V)</option>
+                        </select>
+                    </div>
+                    <div class="col">
+                        <label>Exploring starts</label>
+                        <select id="starts">
+                            <option value="all" selected>Random start state</option>
+                            <option value="fixed">Fixed start (1,1)</option>
                         </select>
                     </div>
                 </div>
@@ -353,55 +369,50 @@
 
                 <div class="row">
                     <button class="btn primary" id="reset">Reset</button>
-                    <button class="btn" id="step">Step (one sweep)</button>
+                    <button class="btn" id="run">Run batch</button>
                     <button class="btn" id="play">Play</button>
                     <button class="btn danger" id="stop">Stop</button>
                 </div>
 
                 <div style="margin-top:12px;">
                     <div class="chips">
-                        <div class="chip">sweep: <b id="sweepChip">0</b></div>
-                        <div class="chip">max Δ: <b id="deltaChip">–</b></div>
+                        <div class="chip">episodes: <b id="episodeChip">0</b></div>
+                        <div class="chip">last return: <b id="returnChip">–</b></div>
                         <div class="chip">selected state: <b id="stateChip">–</b></div>
                     </div>
                 </div>
             </div>
 
-            <h2>DP chapter cheat sheet</h2>
+            <h2>MC chapter cheat sheet</h2>
             <div class="body">
                 <div class="help">
-                    Dynamic programming in Sutton &amp; Barto is about solving known MDPs by
-                    iterating Bellman backups. The key ingredients are a model (P, R), a policy π,
-                    and a value function V or Q. The three canonical algorithms are:
+                    Monte Carlo methods estimate value functions from complete episodes.
+                    Instead of bootstrapping, they average observed returns. In the DP chapter we
+                    assumed a model; here we learn from sampled trajectories.
                 </div>
                 <div class="spacer" style="height:10px;"></div>
                 <ul class="help" style="margin:0 0 8px 18px; padding:0;">
-                    <li><b>Policy evaluation</b>: repeatedly apply the Bellman <i>expectation</i> backup until Vπ converges.</li>
-                    <li><b>Policy improvement</b>: make π greedy w.r.t. Vπ to get a better policy.</li>
-                    <li><b>Value iteration</b>: apply the Bellman <i>optimality</i> backup until V* converges.</li>
+                    <li><b>First-visit MC</b>: update V(s) using the first time s appears in an episode.</li>
+                    <li><b>Every-visit MC</b>: update V(s) for all occurrences in the episode.</li>
+                    <li><b>Exploring starts</b>: start episodes from random states to ensure exploration.</li>
                 </ul>
-                <div class="math">V(s) ← Σ<sub>a</sub> π(a|s) Σ<sub>s'</sub> P(s'|s,a) [R + γ V(s')]</div>
-                <div class="spacer" style="height:8px;"></div>
-                <div class="math">V(s) ← max<sub>a</sub> Σ<sub>s'</sub> P(s'|s,a) [R + γ V(s')]</div>
+                <div class="math">V(s) ← average of returns G<sub>t</sub> observed after visits to s.</div>
             </div>
 
-            <h2>Selected-state backup</h2>
+            <h2>Selected-state returns</h2>
             <div class="body">
-                <div class="help" id="backupHint">Click a grid cell to inspect its Bellman backup terms.</div>
+                <div class="help" id="returnsHint">Click a state to see sampled returns from recent episodes.</div>
                 <div class="spacer" style="height:10px;"></div>
-                <table id="backupTable">
+                <table id="returnsTable">
                     <thead>
                         <tr>
-                            <th>action</th>
-                            <th>next state</th>
-                            <th>reward</th>
-                            <th>backup term</th>
+                            <th>episode</th>
+                            <th>visit step</th>
+                            <th>return G</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
                 </table>
-                <div class="spacer" style="height:10px;"></div>
-                <div class="math" id="backupFormula">Select a state to view its update formula.</div>
             </div>
         </section>
 
@@ -409,7 +420,7 @@
             <h2>Visualization</h2>
             <div class="body">
                 <div class="canvasWrap">
-                    <div class="miniTitle"><span>4×4 gridworld</span> <b>Values + greedy arrows</b></div>
+                    <div class="miniTitle"><span>4×4 gridworld</span> <b>MC value estimates</b></div>
                     <canvas id="gridCanvas" width="1000" height="600"></canvas>
                     <div class="legend">
                         <span><span class="swatch" style="background:#1b2657"></span> low value</span>
@@ -421,8 +432,8 @@
                 <div style="height:12px;"></div>
 
                 <div class="canvasWrap">
-                    <div class="miniTitle"><span>Convergence</span> <b>max Δ per sweep</b></div>
-                    <canvas id="deltaCanvas" width="1000" height="280" style="height:280px;"></canvas>
+                    <div class="miniTitle"><span>Learning curve</span> <b>average return per episode</b></div>
+                    <canvas id="returnCanvas" width="1000" height="280" style="height:280px;"></canvas>
                 </div>
             </div>
         </section>
@@ -437,32 +448,37 @@
             { name: "E", dr: 0, dc: 1 },
         ];
         const TERMINALS = [
-            { r: 0, c: 0 },
-            { r: GRID.rows - 1, c: GRID.cols - 1 },
+            { r: 0, c: 0, reward: 0 },
+            { r: GRID.rows - 1, c: GRID.cols - 1, reward: 0 },
         ];
         const STEP_REWARD = -1;
+        const MAX_STEPS = 50;
 
-        const algoEl = document.getElementById("algo");
+        const estimatorEl = document.getElementById("estimator");
         const gammaEl = document.getElementById("gamma");
         const gammaValEl = document.getElementById("gammaVal");
-        const initEl = document.getElementById("initV");
-        const sweepChip = document.getElementById("sweepChip");
-        const deltaChip = document.getElementById("deltaChip");
+        const episodesEl = document.getElementById("episodes");
+        const policyEl = document.getElementById("policy");
+        const startsEl = document.getElementById("starts");
+
+        const episodeChip = document.getElementById("episodeChip");
+        const returnChip = document.getElementById("returnChip");
         const stateChip = document.getElementById("stateChip");
-        const backupTable = document.getElementById("backupTable").querySelector("tbody");
-        const backupFormula = document.getElementById("backupFormula");
-        const backupHint = document.getElementById("backupHint");
+        const returnsTable = document.getElementById("returnsTable").querySelector("tbody");
+        const returnsHint = document.getElementById("returnsHint");
 
         const gridCanvas = document.getElementById("gridCanvas");
         const gridCtx = gridCanvas.getContext("2d");
-        const deltaCanvas = document.getElementById("deltaCanvas");
-        const deltaCtx = deltaCanvas.getContext("2d");
+        const returnCanvas = document.getElementById("returnCanvas");
+        const returnCtx = returnCanvas.getContext("2d");
 
         let V = new Array(GRID.rows * GRID.cols).fill(0);
-        let sweep = 0;
-        let deltas = [];
+        let returns = Array.from({ length: GRID.rows * GRID.cols }, () => []);
+        let episode = 0;
+        let avgReturns = [];
         let timer = null;
         let selected = null;
+        let recentVisits = [];
 
         function idx(r, c) {
             return r * GRID.cols + c;
@@ -481,36 +497,24 @@
             return { r2: nr, c2: nc, reward: STEP_REWARD };
         }
 
-        function backupEvaluation(r, c, gamma) {
-            let sum = 0;
-            const details = [];
-            for (const a of ACTIONS) {
-                const out = stepDynamics(r, c, a);
-                const term = out.reward + gamma * V[idx(out.r2, out.c2)];
-                sum += 0.25 * term;
-                details.push({ a: a.name, out, term, weight: 0.25 });
+        function chooseAction(r, c) {
+            if (policyEl.value === "uniform") {
+                return ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
             }
-            return { value: sum, details };
+            const epsilon = 0.2;
+            if (Math.random() < epsilon) {
+                return ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
+            }
+            const greedy = greedyActions(r, c);
+            return greedy[Math.floor(Math.random() * greedy.length)];
         }
 
-        function backupOptimality(r, c, gamma) {
-            let best = -Infinity;
-            const details = [];
-            for (const a of ACTIONS) {
-                const out = stepDynamics(r, c, a);
-                const term = out.reward + gamma * V[idx(out.r2, out.c2)];
-                details.push({ a: a.name, out, term });
-                best = Math.max(best, term);
-            }
-            return { value: best, details };
-        }
-
-        function greedyActions(r, c, gamma) {
+        function greedyActions(r, c) {
             let best = -Infinity;
             let bestAs = [];
             for (const a of ACTIONS) {
                 const out = stepDynamics(r, c, a);
-                const term = out.reward + gamma * V[idx(out.r2, out.c2)];
+                const term = out.reward + parseFloat(gammaEl.value) * V[idx(out.r2, out.c2)];
                 if (term > best + 1e-12) {
                     best = term;
                     bestAs = [a];
@@ -521,47 +525,80 @@
             return bestAs;
         }
 
-        function sweepOnce() {
+        function generateEpisode() {
+            let r = 1;
+            let c = 1;
+            if (startsEl.value === "all") {
+                r = Math.floor(Math.random() * GRID.rows);
+                c = Math.floor(Math.random() * GRID.cols);
+            }
+            const trajectory = [];
+            for (let t = 0; t < MAX_STEPS; t++) {
+                if (isTerminal(r, c)) break;
+                const action = chooseAction(r, c);
+                const out = stepDynamics(r, c, action);
+                trajectory.push({ r, c, reward: out.reward });
+                r = out.r2;
+                c = out.c2;
+                if (isTerminal(r, c)) break;
+            }
+            if (isTerminal(r, c)) {
+                trajectory.push({ r, c, reward: 0, terminal: true });
+            }
+            return trajectory;
+        }
+
+        function updateValues(trajectory) {
             const gamma = parseFloat(gammaEl.value);
-            const next = V.slice();
-            let maxDelta = 0;
-            for (let r = 0; r < GRID.rows; r++) {
-                for (let c = 0; c < GRID.cols; c++) {
-                    if (isTerminal(r, c)) {
-                        next[idx(r, c)] = 0;
-                        continue;
-                    }
-                    const backup = algoEl.value === "value"
-                        ? backupOptimality(r, c, gamma)
-                        : backupEvaluation(r, c, gamma);
-                    const i = idx(r, c);
-                    const delta = Math.abs(backup.value - V[i]);
-                    maxDelta = Math.max(maxDelta, delta);
-                    next[i] = backup.value;
+            let G = 0;
+            const visited = new Set();
+            for (let t = trajectory.length - 1; t >= 0; t--) {
+                const step = trajectory[t];
+                G = step.reward + gamma * G;
+                const stateKey = `${step.r},${step.c}`;
+                const stateIndex = idx(step.r, step.c);
+                const firstVisit = !visited.has(stateKey);
+                if (estimatorEl.value === "every" || firstVisit) {
+                    returns[stateIndex].push(G);
+                    V[stateIndex] = average(returns[stateIndex]);
+                    recentVisits.push({ episode, step: t, G, r: step.r, c: step.c });
                 }
+                visited.add(stateKey);
             }
-            V = next;
-            sweep += 1;
-            deltas.push(maxDelta);
-            sweepChip.textContent = sweep;
-            deltaChip.textContent = maxDelta.toFixed(4);
-            if (selected) {
-                updateBackup(selected.r, selected.c);
+            return G;
+        }
+
+        function average(list) {
+            if (list.length === 0) return 0;
+            return list.reduce((a, b) => a + b, 0) / list.length;
+        }
+
+        function runBatch(count) {
+            let batchReturn = 0;
+            for (let i = 0; i < count; i++) {
+                const traj = generateEpisode();
+                const epReturn = updateValues(traj);
+                batchReturn += epReturn;
+                episode += 1;
+                avgReturns.push(epReturn);
             }
+            const lastReturn = batchReturn / count;
+            episodeChip.textContent = episode;
+            returnChip.textContent = lastReturn.toFixed(2);
             draw();
+            if (selected) {
+                updateReturns(selected.r, selected.c);
+            }
         }
 
         function resetAll() {
-            const init = initEl.value;
-            V = V.map((_, i) => {
-                if (isTerminal(Math.floor(i / GRID.cols), i % GRID.cols)) return 0;
-                if (init === "random") return (Math.random() - 0.5) * 0.5;
-                return 0;
-            });
-            sweep = 0;
-            deltas = [];
-            sweepChip.textContent = "0";
-            deltaChip.textContent = "–";
+            V = V.map((_, i) => isTerminal(Math.floor(i / GRID.cols), i % GRID.cols) ? 0 : 0);
+            returns = Array.from({ length: GRID.rows * GRID.cols }, () => []);
+            episode = 0;
+            avgReturns = [];
+            recentVisits = [];
+            episodeChip.textContent = "0";
+            returnChip.textContent = "–";
             draw();
         }
 
@@ -600,7 +637,7 @@
                     gridCtx.fillText(v.toFixed(2), x + 8, y + 18);
 
                     if (!isTerminal(r, c)) {
-                        const actions = greedyActions(r, c, parseFloat(gammaEl.value));
+                        const actions = greedyActions(r, c);
                         gridCtx.strokeStyle = "#76f7c4";
                         gridCtx.lineWidth = 2;
                         actions.forEach(a => {
@@ -628,68 +665,58 @@
             }
         }
 
-        function drawDelta() {
-            const w = deltaCanvas.width;
-            const h = deltaCanvas.height;
-            deltaCtx.clearRect(0, 0, w, h);
+        function drawReturns() {
+            const w = returnCanvas.width;
+            const h = returnCanvas.height;
+            returnCtx.clearRect(0, 0, w, h);
             const pad = 30;
-            deltaCtx.strokeStyle = "rgba(255,255,255,0.12)";
-            deltaCtx.strokeRect(pad, pad, w - 2 * pad, h - 2 * pad);
+            returnCtx.strokeStyle = "rgba(255,255,255,0.12)";
+            returnCtx.strokeRect(pad, pad, w - 2 * pad, h - 2 * pad);
 
-            if (deltas.length === 0) return;
-            const maxD = Math.max(...deltas);
-            const len = deltas.length;
-            deltaCtx.strokeStyle = "#7aa2ff";
-            deltaCtx.lineWidth = 2;
-            deltaCtx.beginPath();
-            deltas.forEach((d, i) => {
-                const x = pad + (i / Math.max(1, len - 1)) * (w - 2 * pad);
-                const y = h - pad - (d / Math.max(1e-6, maxD)) * (h - 2 * pad);
-                if (i === 0) deltaCtx.moveTo(x, y);
-                else deltaCtx.lineTo(x, y);
+            if (avgReturns.length === 0) return;
+            const maxR = Math.max(...avgReturns);
+            const minR = Math.min(...avgReturns);
+            const range = Math.max(1e-6, maxR - minR);
+            returnCtx.strokeStyle = "#7aa2ff";
+            returnCtx.lineWidth = 2;
+            returnCtx.beginPath();
+            avgReturns.forEach((d, i) => {
+                const x = pad + (i / Math.max(1, avgReturns.length - 1)) * (w - 2 * pad);
+                const y = h - pad - ((d - minR) / range) * (h - 2 * pad);
+                if (i === 0) returnCtx.moveTo(x, y);
+                else returnCtx.lineTo(x, y);
             });
-            deltaCtx.stroke();
+            returnCtx.stroke();
 
-            deltaCtx.fillStyle = "#a9b4d6";
-            deltaCtx.font = "12px ui-monospace";
-            deltaCtx.fillText(`max Δ: ${maxD.toFixed(3)}`, pad + 6, pad + 14);
+            returnCtx.fillStyle = "#a9b4d6";
+            returnCtx.font = "12px ui-monospace";
+            returnCtx.fillText(`episodes: ${episode}`, pad + 6, pad + 14);
         }
 
         function draw() {
             drawGrid();
-            drawDelta();
+            drawReturns();
         }
 
-        function updateBackup(r, c) {
+        function updateReturns(r, c) {
             selected = { r, c };
             stateChip.textContent = `(${r}, ${c})`;
-            backupTable.innerHTML = "";
-            if (isTerminal(r, c)) {
-                backupHint.textContent = "Terminal states are fixed at value 0.";
-                backupFormula.textContent = "V(s) = 0 (terminal).";
+            returnsTable.innerHTML = "";
+            const entries = recentVisits.filter(v => v.r === r && v.c === c).slice(-12).reverse();
+            if (entries.length === 0) {
+                returnsHint.textContent = "No sampled returns for this state yet.";
                 return;
             }
-            const gamma = parseFloat(gammaEl.value);
-            const backup = algoEl.value === "value"
-                ? backupOptimality(r, c, gamma)
-                : backupEvaluation(r, c, gamma);
-            backupHint.textContent = "Bellman backup terms for selected state.";
-            backup.details.forEach(item => {
+            returnsHint.textContent = "Recent Monte Carlo returns for selected state.";
+            entries.forEach(item => {
                 const tr = document.createElement("tr");
-                const nextLabel = `(${item.out.r2}, ${item.out.c2})`;
                 tr.innerHTML = `
-                    <td>${item.a}</td>
-                    <td>${nextLabel}</td>
-                    <td>${item.out.reward}</td>
-                    <td>${item.term.toFixed(3)}</td>
+                    <td>${item.episode}</td>
+                    <td>${item.step}</td>
+                    <td>${item.G.toFixed(3)}</td>
                 `;
-                backupTable.appendChild(tr);
+                returnsTable.appendChild(tr);
             });
-            if (algoEl.value === "value") {
-                backupFormula.textContent = `V(s) = max_a [ -1 + γ V(s') ] = ${backup.value.toFixed(3)}`;
-            } else {
-                backupFormula.textContent = `V(s) = average_a [ -1 + γ V(s') ] = ${backup.value.toFixed(3)}`;
-            }
         }
 
         gridCanvas.addEventListener("click", (e) => {
@@ -702,19 +729,21 @@
             const c = Math.floor((x - pad) / cellW);
             const r = Math.floor((y - pad) / cellH);
             if (r >= 0 && r < GRID.rows && c >= 0 && c < GRID.cols) {
-                updateBackup(r, c);
+                updateReturns(r, c);
                 draw();
             }
         });
 
-        document.getElementById("step").addEventListener("click", sweepOnce);
+        document.getElementById("run").addEventListener("click", () => {
+            runBatch(parseInt(episodesEl.value, 10));
+        });
         document.getElementById("reset").addEventListener("click", () => {
             resetAll();
-            updateBackup(1, 1);
+            updateReturns(1, 1);
         });
         document.getElementById("play").addEventListener("click", () => {
             if (timer) return;
-            timer = setInterval(sweepOnce, 400);
+            timer = setInterval(() => runBatch(parseInt(episodesEl.value, 10)), 500);
         });
         document.getElementById("stop").addEventListener("click", () => {
             clearInterval(timer);
@@ -722,17 +751,15 @@
         });
         gammaEl.addEventListener("input", () => {
             gammaValEl.textContent = parseFloat(gammaEl.value).toFixed(2);
-            if (selected) updateBackup(selected.r, selected.c);
             draw();
         });
-        algoEl.addEventListener("change", () => {
-            if (selected) updateBackup(selected.r, selected.c);
+        estimatorEl.addEventListener("change", () => {
             draw();
         });
 
         gammaValEl.textContent = parseFloat(gammaEl.value).toFixed(2);
         resetAll();
-        updateBackup(1, 1);
+        updateReturns(1, 1);
     </script>
 </body>
 

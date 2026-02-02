@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Monte Carlo ES Blackjack</title>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --panel: #121a33;
+            --panel2: #0f1630;
+            --text: #e9eefc;
+            --muted: #a9b4d6;
+            --accent: #7aa2ff;
+            --good: #76f7c4;
+            --warn: #ffcc66;
+            --bad: #ff6b6b;
+            --line: #24305a;
+            --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+            background: radial-gradient(1200px 700px at 20% 10%, #1a2550 0%, var(--bg) 60%) fixed;
+            color: var(--text);
+        }
+
+        header {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+            background: rgba(0, 0, 0, .18);
+            position: sticky;
+            top: 0;
+            backdrop-filter: blur(6px);
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        header h1 {
+            font-size: 15px;
+            margin: 0;
+            letter-spacing: .2px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            font-size: 12px;
+            padding: 3px 8px;
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .04);
+            color: var(--muted);
+        }
+
+        nav a {
+            color: var(--muted);
+            text-decoration: none;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .04);
+            font-size: 12px;
+        }
+
+        nav a:hover {
+            background: rgba(255, 255, 255, .08);
+            color: var(--text);
+        }
+
+        .wrap {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 14px;
+            padding: 14px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 1000px) {
+            .wrap {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .03));
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card h2 {
+            margin: 0;
+            padding: 12px 14px;
+            font-size: 13px;
+            letter-spacing: .25px;
+            color: var(--muted);
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(255, 255, 255, .03);
+        }
+
+        .card .body {
+            padding: 12px 14px;
+        }
+
+        .help {
+            font-size: 12px;
+            line-height: 1.45;
+            color: var(--muted);
+        }
+
+        .kbd {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .22);
+            color: var(--text);
+        }
+
+        .split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .col {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chip {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, .25);
+            border: 1px solid rgba(255, 255, 255, .08);
+            color: var(--muted);
+        }
+
+        label {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 9px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .25);
+            color: var(--text);
+            outline: none;
+        }
+
+        .btn {
+            padding: 10px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .06);
+            color: var(--text);
+            cursor: pointer;
+            user-select: none;
+            font-weight: 600;
+            letter-spacing: .2px;
+            transition: transform .05s ease, background .12s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, .10);
+        }
+
+        .btn:active {
+            transform: scale(.99);
+        }
+
+        .btn.primary {
+            background: rgba(122, 162, 255, .18);
+            border-color: rgba(122, 162, 255, .35);
+        }
+
+        .btn.primary:hover {
+            background: rgba(122, 162, 255, .24);
+        }
+
+        .btn.danger {
+            background: rgba(255, 107, 107, .14);
+            border-color: rgba(255, 107, 107, .35);
+        }
+
+        .btn.danger:hover {
+            background: rgba(255, 107, 107, .2);
+        }
+
+        .canvasWrap {
+            background: rgba(0, 0, 0, .22);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 14px;
+            padding: 10px;
+            position: relative;
+        }
+
+        .miniTitle {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        canvas {
+            width: 100%;
+            display: block;
+            border-radius: 10px;
+            background: #0b1228;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .swatch {
+            width: 12px;
+            height: 12px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, .16);
+        }
+
+        .math {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+            background: rgba(0, 0, 0, .2);
+            padding: 8px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .08);
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>
+            Monte Carlo ES Blackjack
+            <span class="tag">Example 5.3</span>
+            <span class="tag">Exploring starts</span>
+            <span class="tag">Optimal policy</span>
+        </h1>
+        <nav class="row">
+            <a href="index.html">← Home</a>
+            <a href="mc.html">← Example 5.1</a>
+        </nav>
+    </header>
+
+    <div class="wrap">
+        <section class="card">
+            <h2>Controls</h2>
+            <div class="body">
+                <div class="split">
+                    <div class="col">
+                        <label>Episodes / batch</label>
+                        <input id="episodes" type="number" min="100" max="500000" value="10000" step="100" />
+                    </div>
+                    <div class="col">
+                        <label>Auto-play speed (ms)</label>
+                        <input id="speed" type="number" min="100" max="5000" value="600" />
+                    </div>
+                </div>
+
+                <div class="spacer" style="height:10px;"></div>
+
+                <div class="row">
+                    <button class="btn primary" id="reset">Reset</button>
+                    <button class="btn" id="run">Run batch</button>
+                    <button class="btn" id="play">Play</button>
+                    <button class="btn danger" id="stop">Stop</button>
+                </div>
+
+                <div style="margin-top:12px;">
+                    <div class="chips">
+                        <div class="chip">episodes: <b id="episodeChip">0</b></div>
+                        <div class="chip">avg return: <b id="returnChip">–</b></div>
+                        <div class="chip">selected state: <b id="stateChip">–</b></div>
+                    </div>
+                </div>
+            </div>
+
+            <h2>Monte Carlo ES (Example 5.3)</h2>
+            <div class="body">
+                <div class="help">
+                    Exploring starts sample random initial states and actions so every state-action
+                    pair is explored. We learn an optimal action-value function Q*, then derive
+                    the greedy policy π* and state-value surface V*.
+                </div>
+                <div class="spacer" style="height:10px;"></div>
+                <div class="math">Q(s, a) ← average of returns following visits to (s, a).</div>
+                <div class="spacer" style="height:10px;"></div>
+                <div class="help">
+                    State: player sum (12–21), dealer showing (A–10), usable ace (yes/no).
+                </div>
+            </div>
+
+            <h2>Selected-state action values</h2>
+            <div class="body">
+                <div class="help" id="valuesHint">Click a state to inspect its Q(s, hit) and Q(s, stick).</div>
+                <div class="spacer" style="height:10px;"></div>
+                <div class="math" id="valueLine">Select a state to view values.</div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Visualization</h2>
+            <div class="body">
+                <div class="canvasWrap">
+                    <div class="miniTitle"><span>Usable ace</span> <b>Optimal policy π*</b></div>
+                    <canvas id="policyUsable" width="1000" height="320"></canvas>
+                </div>
+
+                <div style="height:12px;"></div>
+
+                <div class="canvasWrap">
+                    <div class="miniTitle"><span>No usable ace</span> <b>Optimal policy π*</b></div>
+                    <canvas id="policyNoAce" width="1000" height="320"></canvas>
+                    <div class="legend">
+                        <span><span class="swatch" style="background:#76f7c4"></span> stick</span>
+                        <span><span class="swatch" style="background:#ffcc66"></span> hit</span>
+                    </div>
+                </div>
+
+                <div style="height:12px;"></div>
+
+                <div class="canvasWrap">
+                    <div class="miniTitle"><span>Usable ace</span> <b>V* surface (3D projection)</b></div>
+                    <canvas id="valueUsable" width="1000" height="360"></canvas>
+                </div>
+
+                <div style="height:12px;"></div>
+
+                <div class="canvasWrap">
+                    <div class="miniTitle"><span>No usable ace</span> <b>V* surface (3D projection)</b></div>
+                    <canvas id="valueNoAce" width="1000" height="360"></canvas>
+                </div>
+
+                <div style="height:12px;"></div>
+
+                <div class="canvasWrap">
+                    <div class="miniTitle"><span>Learning curve</span> <b>average return</b></div>
+                    <canvas id="returnCanvas" width="1000" height="240" style="height:240px;"></canvas>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const episodesEl = document.getElementById("episodes");
+        const speedEl = document.getElementById("speed");
+        const episodeChip = document.getElementById("episodeChip");
+        const returnChip = document.getElementById("returnChip");
+        const stateChip = document.getElementById("stateChip");
+        const valuesHint = document.getElementById("valuesHint");
+        const valueLine = document.getElementById("valueLine");
+
+        const policyUsable = document.getElementById("policyUsable");
+        const policyNoAce = document.getElementById("policyNoAce");
+        const valueUsable = document.getElementById("valueUsable");
+        const valueNoAce = document.getElementById("valueNoAce");
+        const returnCanvas = document.getElementById("returnCanvas");
+        const policyUsableCtx = policyUsable.getContext("2d");
+        const policyNoAceCtx = policyNoAce.getContext("2d");
+        const valueUsableCtx = valueUsable.getContext("2d");
+        const valueNoAceCtx = valueNoAce.getContext("2d");
+        const returnCtx = returnCanvas.getContext("2d");
+
+        const PLAYER_MIN = 12;
+        const PLAYER_MAX = 21;
+        const DEALER_MIN = 1;
+        const DEALER_MAX = 10;
+
+        const ACTIONS = ["hit", "stick"];
+
+        let Q = initQ();
+        let returns = initReturns();
+        let episodeCount = 0;
+        let avgReturns = [];
+        let timer = null;
+        let selected = null;
+
+        function initQ() {
+            const table = {};
+            [true, false].forEach(usable => {
+                table[usable] = Array.from({ length: PLAYER_MAX + 1 }, () =>
+                    Array.from({ length: DEALER_MAX + 1 }, () => ({ hit: 0, stick: 0 }))
+                );
+            });
+            return table;
+        }
+
+        function initReturns() {
+            const table = {};
+            [true, false].forEach(usable => {
+                table[usable] = Array.from({ length: PLAYER_MAX + 1 }, () =>
+                    Array.from({ length: DEALER_MAX + 1 }, () => ({ hit: [], stick: [] }))
+                );
+            });
+            return table;
+        }
+
+        function drawCard() {
+            return Math.min(10, Math.floor(Math.random() * 13) + 1);
+        }
+
+        function handValue(cards) {
+            let sum = cards.reduce((a, b) => a + b, 0);
+            let usableAce = cards.includes(1) && sum + 10 <= 21;
+            if (usableAce) sum += 10;
+            return { sum, usableAce };
+        }
+
+        function randomState() {
+            const sum = PLAYER_MIN + Math.floor(Math.random() * (PLAYER_MAX - PLAYER_MIN + 1));
+            const dealer = DEALER_MIN + Math.floor(Math.random() * (DEALER_MAX - DEALER_MIN + 1));
+            const usableAce = Math.random() < 0.5;
+            return { sum, dealer, usableAce };
+        }
+
+        function policyFromQ(state) {
+            const q = Q[state.usableAce][state.sum][state.dealer];
+            if (q.hit > q.stick) return "hit";
+            if (q.stick > q.hit) return "stick";
+            return Math.random() < 0.5 ? "hit" : "stick";
+        }
+
+        function playEpisode() {
+            const start = randomState();
+            const startAction = ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
+            let player = [];
+            let dealer = [drawCard(), drawCard()];
+
+            const sumTarget = start.sum;
+            const needsAce = start.usableAce;
+            player.push(start.dealer === 1 ? 1 : drawCard());
+            while (true) {
+                const { sum, usableAce } = handValue(player);
+                if (sum === sumTarget && usableAce === needsAce) break;
+                player.push(drawCard());
+                if (player.length > 6) break;
+            }
+
+            let stateLog = [{ ...start, action: startAction }];
+
+            let currentAction = startAction;
+            while (true) {
+                const { sum, usableAce } = handValue(player);
+                if (sum > 21) {
+                    return { reward: -1, stateActions: stateLog };
+                }
+                if (sum >= PLAYER_MIN) {
+                    const action = currentAction || policyFromQ({ sum, dealer: dealer[0], usableAce });
+                    stateLog.push({ sum, dealer: dealer[0], usableAce, action });
+                    if (action === "stick") break;
+                }
+                player.push(drawCard());
+                currentAction = null;
+            }
+
+            let dealerValue = handValue(dealer);
+            while (dealerValue.sum < 17) {
+                dealer.push(drawCard());
+                dealerValue = handValue(dealer);
+            }
+            const playerValue = handValue(player);
+            if (dealerValue.sum > 21) return { reward: 1, stateActions: stateLog };
+            if (playerValue.sum > dealerValue.sum) return { reward: 1, stateActions: stateLog };
+            if (playerValue.sum < dealerValue.sum) return { reward: -1, stateActions: stateLog };
+            return { reward: 0, stateActions: stateLog };
+        }
+
+        function updateFromEpisode(ep) {
+            const visited = new Set();
+            ep.stateActions.forEach(sa => {
+                const key = `${sa.sum}-${sa.dealer}-${sa.usableAce}-${sa.action}`;
+                if (visited.has(key)) return;
+                visited.add(key);
+                returns[sa.usableAce][sa.sum][sa.dealer][sa.action].push(ep.reward);
+                Q[sa.usableAce][sa.sum][sa.dealer][sa.action] = average(
+                    returns[sa.usableAce][sa.sum][sa.dealer][sa.action]
+                );
+            });
+        }
+
+        function average(list) {
+            if (list.length === 0) return 0;
+            return list.reduce((a, b) => a + b, 0) / list.length;
+        }
+
+        function stateValue(state) {
+            const q = Q[state.usableAce][state.sum][state.dealer];
+            return Math.max(q.hit, q.stick);
+        }
+
+        function runBatch(count) {
+            let total = 0;
+            for (let i = 0; i < count; i++) {
+                const ep = playEpisode();
+                updateFromEpisode(ep);
+                total += ep.reward;
+                episodeCount += 1;
+                avgReturns.push(total / (i + 1));
+            }
+            episodeChip.textContent = episodeCount;
+            returnChip.textContent = (total / count).toFixed(2);
+            draw();
+            if (selected) updateSelected(selected);
+        }
+
+        function resetAll() {
+            Q = initQ();
+            returns = initReturns();
+            episodeCount = 0;
+            avgReturns = [];
+            episodeChip.textContent = "0";
+            returnChip.textContent = "–";
+            draw();
+        }
+
+        function drawPolicy(ctx, usableAce) {
+            const w = ctx.canvas.width;
+            const h = ctx.canvas.height;
+            ctx.clearRect(0, 0, w, h);
+            const pad = 40;
+            const cellW = (w - 2 * pad) / (DEALER_MAX - DEALER_MIN + 1);
+            const cellH = (h - 2 * pad) / (PLAYER_MAX - PLAYER_MIN + 1);
+
+            for (let sum = PLAYER_MIN; sum <= PLAYER_MAX; sum++) {
+                for (let dealer = DEALER_MIN; dealer <= DEALER_MAX; dealer++) {
+                    const x = pad + (dealer - DEALER_MIN) * cellW;
+                    const y = pad + (PLAYER_MAX - sum) * cellH;
+                    const action = policyFromQ({ sum, dealer, usableAce });
+                    ctx.fillStyle = action === "stick" ? "rgba(118,247,196,0.75)" : "rgba(255,204,102,0.75)";
+                    ctx.fillRect(x, y, cellW, cellH);
+                    ctx.strokeStyle = "rgba(255,255,255,0.1)";
+                    ctx.strokeRect(x, y, cellW, cellH);
+                }
+            }
+
+            drawAxes(ctx, w, h, pad);
+            if (selected && selected.usableAce === usableAce) highlightCell(ctx, selected, pad, cellW, cellH);
+        }
+
+        function drawSurface(ctx, usableAce) {
+            const w = ctx.canvas.width;
+            const h = ctx.canvas.height;
+            ctx.clearRect(0, 0, w, h);
+            const pad = 40;
+            const cellW = (w - 2 * pad) / (DEALER_MAX - DEALER_MIN + 1);
+            const cellH = (h - 2 * pad) / (PLAYER_MAX - PLAYER_MIN + 1);
+
+            const originX = pad + 20;
+            const originY = h - pad - 20;
+            const scaleX = cellW * 0.6;
+            const scaleY = cellH * 0.6;
+            const heightScale = 40;
+
+            ctx.strokeStyle = "rgba(255,255,255,0.15)";
+            for (let sum = PLAYER_MIN; sum <= PLAYER_MAX; sum++) {
+                ctx.beginPath();
+                for (let dealer = DEALER_MIN; dealer <= DEALER_MAX; dealer++) {
+                    const value = stateValue({ sum, dealer, usableAce });
+                    const x = originX + (dealer - DEALER_MIN) * scaleX + (PLAYER_MAX - sum) * 4;
+                    const y = originY - (PLAYER_MAX - sum) * scaleY - value * heightScale;
+                    if (dealer === DEALER_MIN) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+
+            for (let dealer = DEALER_MIN; dealer <= DEALER_MAX; dealer++) {
+                ctx.beginPath();
+                for (let sum = PLAYER_MIN; sum <= PLAYER_MAX; sum++) {
+                    const value = stateValue({ sum, dealer, usableAce });
+                    const x = originX + (dealer - DEALER_MIN) * scaleX + (PLAYER_MAX - sum) * 4;
+                    const y = originY - (PLAYER_MAX - sum) * scaleY - value * heightScale;
+                    if (sum === PLAYER_MIN) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = "#a9b4d6";
+            ctx.font = "12px ui-monospace";
+            ctx.fillText("Dealer showing", pad, h - 10);
+            ctx.save();
+            ctx.translate(12, h / 2 + 30);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText("Player sum", 0, 0);
+            ctx.restore();
+        }
+
+        function drawAxes(ctx, w, h, pad) {
+            ctx.fillStyle = "#a9b4d6";
+            ctx.font = "12px ui-monospace";
+            ctx.fillText("Dealer showing", pad, h - 10);
+            ctx.save();
+            ctx.translate(12, h / 2 + 30);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText("Player sum", 0, 0);
+            ctx.restore();
+
+            for (let dealer = DEALER_MIN; dealer <= DEALER_MAX; dealer++) {
+                const x = pad + (dealer - DEALER_MIN + 0.5) * ((w - 2 * pad) / (DEALER_MAX - DEALER_MIN + 1));
+                ctx.fillText(dealer === 1 ? "A" : dealer.toString(), x - 4, h - pad + 16);
+            }
+            for (let sum = PLAYER_MIN; sum <= PLAYER_MAX; sum++) {
+                const y = pad + (PLAYER_MAX - sum + 0.5) * ((h - 2 * pad) / (PLAYER_MAX - PLAYER_MIN + 1));
+                ctx.fillText(sum.toString(), 8, y + 4);
+            }
+        }
+
+        function highlightCell(ctx, state, pad, cellW, cellH) {
+            const x = pad + (state.dealer - DEALER_MIN) * cellW;
+            const y = pad + (PLAYER_MAX - state.sum) * cellH;
+            ctx.strokeStyle = "#ffcc66";
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x + 2, y + 2, cellW - 4, cellH - 4);
+        }
+
+        function drawReturns() {
+            const w = returnCanvas.width;
+            const h = returnCanvas.height;
+            returnCtx.clearRect(0, 0, w, h);
+            const pad = 30;
+            returnCtx.strokeStyle = "rgba(255,255,255,0.12)";
+            returnCtx.strokeRect(pad, pad, w - 2 * pad, h - 2 * pad);
+
+            if (avgReturns.length === 0) return;
+            const maxR = Math.max(...avgReturns);
+            const minR = Math.min(...avgReturns);
+            const range = Math.max(1e-6, maxR - minR);
+            returnCtx.strokeStyle = "#7aa2ff";
+            returnCtx.lineWidth = 2;
+            returnCtx.beginPath();
+            avgReturns.forEach((d, i) => {
+                const x = pad + (i / Math.max(1, avgReturns.length - 1)) * (w - 2 * pad);
+                const y = h - pad - ((d - minR) / range) * (h - 2 * pad);
+                if (i === 0) returnCtx.moveTo(x, y);
+                else returnCtx.lineTo(x, y);
+            });
+            returnCtx.stroke();
+            returnCtx.fillStyle = "#a9b4d6";
+            returnCtx.font = "12px ui-monospace";
+            returnCtx.fillText(`episodes: ${episodeCount}`, pad + 6, pad + 14);
+        }
+
+        function draw() {
+            drawPolicy(policyUsableCtx, true);
+            drawPolicy(policyNoAceCtx, false);
+            drawSurface(valueUsableCtx, true);
+            drawSurface(valueNoAceCtx, false);
+            drawReturns();
+        }
+
+        function updateSelected(state) {
+            selected = state;
+            stateChip.textContent = `${state.sum}, ${state.dealer}, ${state.usableAce ? "usable" : "no ace"}`;
+            const q = Q[state.usableAce][state.sum][state.dealer];
+            valuesHint.textContent = "Action-values from Monte Carlo ES.";
+            valueLine.textContent = `Q(hit) = ${q.hit.toFixed(2)} | Q(stick) = ${q.stick.toFixed(2)}`;
+        }
+
+        function surfaceClick(e, canvas, usableAce) {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+            const pad = 40;
+            const cellW = (canvas.width - 2 * pad) / (DEALER_MAX - DEALER_MIN + 1);
+            const cellH = (canvas.height - 2 * pad) / (PLAYER_MAX - PLAYER_MIN + 1);
+            const dealer = Math.floor((x - pad) / cellW) + DEALER_MIN;
+            const sum = PLAYER_MAX - Math.floor((y - pad) / cellH);
+            if (dealer >= DEALER_MIN && dealer <= DEALER_MAX && sum >= PLAYER_MIN && sum <= PLAYER_MAX) {
+                updateSelected({ sum, dealer, usableAce });
+                draw();
+            }
+        }
+
+        policyUsable.addEventListener("click", (e) => surfaceClick(e, policyUsable, true));
+        policyNoAce.addEventListener("click", (e) => surfaceClick(e, policyNoAce, false));
+
+        document.getElementById("run").addEventListener("click", () => {
+            runBatch(parseInt(episodesEl.value, 10));
+        });
+        document.getElementById("reset").addEventListener("click", () => {
+            resetAll();
+            updateSelected({ sum: 20, dealer: 10, usableAce: false });
+        });
+        document.getElementById("play").addEventListener("click", () => {
+            if (timer) return;
+            timer = setInterval(() => runBatch(parseInt(episodesEl.value, 10)), parseInt(speedEl.value, 10));
+        });
+        document.getElementById("stop").addEventListener("click", () => {
+            clearInterval(timer);
+            timer = null;
+        });
+
+        resetAll();
+        updateSelected({ sum: 20, dealer: 10, usableAce: false });
+    </script>
+</body>
+
+</html>

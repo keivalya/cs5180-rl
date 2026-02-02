@@ -176,23 +176,18 @@
             align-items: center;
         }
 
-        input[type="range"] {
+        input[type="range"],
+        input[type="number"] {
             width: 100%;
         }
 
-        input[type="number"],
-        select {
-            width: 100%;
+        input[type="number"] {
             padding: 9px 10px;
             border-radius: 10px;
             border: 1px solid rgba(255, 255, 255, .10);
             background: rgba(0, 0, 0, .25);
             color: var(--text);
             outline: none;
-        }
-
-        select {
-            cursor: pointer;
         }
 
         .btn {
@@ -257,24 +252,6 @@
             background: #0b1228;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-        }
-
-        th,
-        td {
-            text-align: left;
-            padding: 6px 8px;
-            border-bottom: 1px solid rgba(255, 255, 255, .08);
-        }
-
-        th {
-            color: var(--muted);
-            font-weight: 600;
-        }
-
         .legend {
             display: flex;
             flex-wrap: wrap;
@@ -297,6 +274,24 @@
             border: 1px solid rgba(255, 255, 255, .16);
         }
 
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 6px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+        }
+
+        th {
+            color: var(--muted);
+            font-weight: 600;
+        }
+
         .math {
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
             font-size: 12px;
@@ -312,9 +307,9 @@
     <header>
         <h1>
             Monte Carlo Methods
-            <span class="tag">First-visit MC</span>
-            <span class="tag">Every-visit MC</span>
-            <span class="tag">Exploring Starts</span>
+            <span class="tag">Blackjack</span>
+            <span class="tag">First/Every-visit</span>
+            <span class="tag">Policy evaluation</span>
         </h1>
         <nav class="row">
             <a href="index.html">← Home</a>
@@ -337,31 +332,12 @@
 
                 <div class="split">
                     <div class="col">
-                        <label>Discount γ <span class="kbd" id="gammaVal">0.90</span></label>
-                        <input id="gamma" type="range" min="0" max="0.99" value="0.9" step="0.01" />
-                    </div>
-                    <div class="col">
                         <label>Episodes / batch</label>
-                        <input id="episodes" type="number" min="1" max="200" value="20" />
-                    </div>
-                </div>
-
-                <div class="spacer" style="height:10px;"></div>
-
-                <div class="split">
-                    <div class="col">
-                        <label>Policy</label>
-                        <select id="policy">
-                            <option value="uniform" selected>Uniform random</option>
-                            <option value="epsilon">ε-soft (greedy from V)</option>
-                        </select>
+                        <input id="episodes" type="number" min="100" max="500000" value="10000" step="100" />
                     </div>
                     <div class="col">
-                        <label>Exploring starts</label>
-                        <select id="starts">
-                            <option value="all" selected>Random start state</option>
-                            <option value="fixed">Fixed start (1,1)</option>
-                        </select>
+                        <label>Auto-play speed (ms)</label>
+                        <input id="speed" type="number" min="100" max="5000" value="600" />
                     </div>
                 </div>
 
@@ -377,37 +353,36 @@
                 <div style="margin-top:12px;">
                     <div class="chips">
                         <div class="chip">episodes: <b id="episodeChip">0</b></div>
-                        <div class="chip">last return: <b id="returnChip">–</b></div>
+                        <div class="chip">avg return: <b id="returnChip">–</b></div>
                         <div class="chip">selected state: <b id="stateChip">–</b></div>
                     </div>
                 </div>
             </div>
 
-            <h2>MC chapter cheat sheet</h2>
+            <h2>Blackjack policy (Example 5.1)</h2>
             <div class="body">
                 <div class="help">
-                    Monte Carlo methods estimate value functions from complete episodes.
-                    Instead of bootstrapping, they average observed returns. In the DP chapter we
-                    assumed a model; here we learn from sampled trajectories.
+                    We evaluate the policy that <b>sticks on 20 or 21</b> and otherwise hits. Each
+                    episode is a blackjack game against a fixed dealer who sticks on 17+. Rewards
+                    are +1 (win), −1 (lose), and 0 (draw); the return is the terminal reward.
                 </div>
                 <div class="spacer" style="height:10px;"></div>
-                <ul class="help" style="margin:0 0 8px 18px; padding:0;">
-                    <li><b>First-visit MC</b>: update V(s) using the first time s appears in an episode.</li>
-                    <li><b>Every-visit MC</b>: update V(s) for all occurrences in the episode.</li>
-                    <li><b>Exploring starts</b>: start episodes from random states to ensure exploration.</li>
-                </ul>
-                <div class="math">V(s) ← average of returns G<sub>t</sub> observed after visits to s.</div>
+                <div class="math">V(s) ← average of returns G following visits to s (γ = 1).</div>
+                <div class="spacer" style="height:10px;"></div>
+                <div class="help">
+                    State variables: player sum (12–21), dealer showing (A–10), usable ace (yes/no).
+                </div>
             </div>
 
             <h2>Selected-state returns</h2>
             <div class="body">
-                <div class="help" id="returnsHint">Click a state to see sampled returns from recent episodes.</div>
+                <div class="help" id="returnsHint">Click a state on either surface to inspect recent returns.</div>
                 <div class="spacer" style="height:10px;"></div>
                 <table id="returnsTable">
                     <thead>
                         <tr>
                             <th>episode</th>
-                            <th>visit step</th>
+                            <th>state</th>
                             <th>return G</th>
                         </tr>
                     </thead>
@@ -420,152 +395,146 @@
             <h2>Visualization</h2>
             <div class="body">
                 <div class="canvasWrap">
-                    <div class="miniTitle"><span>4×4 gridworld</span> <b>MC value estimates</b></div>
-                    <canvas id="gridCanvas" width="1000" height="600"></canvas>
+                    <div class="miniTitle"><span>Usable ace</span> <b>State-value estimates</b></div>
+                    <canvas id="usableCanvas" width="1000" height="420"></canvas>
+                </div>
+
+                <div style="height:12px;"></div>
+
+                <div class="canvasWrap">
+                    <div class="miniTitle"><span>No usable ace</span> <b>State-value estimates</b></div>
+                    <canvas id="noAceCanvas" width="1000" height="420"></canvas>
                     <div class="legend">
-                        <span><span class="swatch" style="background:#1b2657"></span> low value</span>
-                        <span><span class="swatch" style="background:#7aa2ff"></span> high value</span>
-                        <span><span class="swatch" style="background:#76f7c4"></span> greedy action</span>
+                        <span><span class="swatch" style="background:#1b2657"></span> −1</span>
+                        <span><span class="swatch" style="background:#7aa2ff"></span> 0</span>
+                        <span><span class="swatch" style="background:#76f7c4"></span> +1</span>
                     </div>
                 </div>
 
                 <div style="height:12px;"></div>
 
                 <div class="canvasWrap">
-                    <div class="miniTitle"><span>Learning curve</span> <b>average return per episode</b></div>
-                    <canvas id="returnCanvas" width="1000" height="280" style="height:280px;"></canvas>
+                    <div class="miniTitle"><span>Learning curve</span> <b>average return</b></div>
+                    <canvas id="returnCanvas" width="1000" height="260" style="height:260px;"></canvas>
                 </div>
             </div>
         </section>
     </div>
 
     <script>
-        const GRID = { rows: 4, cols: 4 };
-        const ACTIONS = [
-            { name: "N", dr: -1, dc: 0 },
-            { name: "S", dr: 1, dc: 0 },
-            { name: "W", dr: 0, dc: -1 },
-            { name: "E", dr: 0, dc: 1 },
-        ];
-        const TERMINALS = [
-            { r: 0, c: 0, reward: 0 },
-            { r: GRID.rows - 1, c: GRID.cols - 1, reward: 0 },
-        ];
-        const STEP_REWARD = -1;
-        const MAX_STEPS = 50;
-
         const estimatorEl = document.getElementById("estimator");
-        const gammaEl = document.getElementById("gamma");
-        const gammaValEl = document.getElementById("gammaVal");
         const episodesEl = document.getElementById("episodes");
-        const policyEl = document.getElementById("policy");
-        const startsEl = document.getElementById("starts");
-
+        const speedEl = document.getElementById("speed");
         const episodeChip = document.getElementById("episodeChip");
         const returnChip = document.getElementById("returnChip");
         const stateChip = document.getElementById("stateChip");
         const returnsTable = document.getElementById("returnsTable").querySelector("tbody");
         const returnsHint = document.getElementById("returnsHint");
 
-        const gridCanvas = document.getElementById("gridCanvas");
-        const gridCtx = gridCanvas.getContext("2d");
+        const usableCanvas = document.getElementById("usableCanvas");
+        const usableCtx = usableCanvas.getContext("2d");
+        const noAceCanvas = document.getElementById("noAceCanvas");
+        const noAceCtx = noAceCanvas.getContext("2d");
         const returnCanvas = document.getElementById("returnCanvas");
         const returnCtx = returnCanvas.getContext("2d");
 
-        let V = new Array(GRID.rows * GRID.cols).fill(0);
-        let returns = Array.from({ length: GRID.rows * GRID.cols }, () => []);
-        let episode = 0;
+        const PLAYER_MIN = 12;
+        const PLAYER_MAX = 21;
+        const DEALER_MIN = 1;
+        const DEALER_MAX = 10;
+        const MAX_RECENT = 12;
+
+        let values = initValues();
+        let returns = initReturns();
+        let episodeCount = 0;
         let avgReturns = [];
         let timer = null;
-        let selected = null;
         let recentVisits = [];
+        let selected = null;
 
-        function idx(r, c) {
-            return r * GRID.cols + c;
+        function initValues() {
+            const table = {};
+            [true, false].forEach(usable => {
+                table[usable] = Array.from({ length: PLAYER_MAX + 1 }, () =>
+                    Array.from({ length: DEALER_MAX + 1 }, () => 0));
+            });
+            return table;
         }
 
-        function isTerminal(r, c) {
-            return TERMINALS.some(t => t.r === r && t.c === c);
+        function initReturns() {
+            const table = {};
+            [true, false].forEach(usable => {
+                table[usable] = Array.from({ length: PLAYER_MAX + 1 }, () =>
+                    Array.from({ length: DEALER_MAX + 1 }, () => []));
+            });
+            return table;
         }
 
-        function stepDynamics(r, c, action) {
-            const nr = r + action.dr;
-            const nc = c + action.dc;
-            if (nr < 0 || nr >= GRID.rows || nc < 0 || nc >= GRID.cols) {
-                return { r2: r, c2: c, reward: STEP_REWARD };
-            }
-            return { r2: nr, c2: nc, reward: STEP_REWARD };
+        function drawCard() {
+            const card = Math.min(10, Math.floor(Math.random() * 13) + 1);
+            return card;
         }
 
-        function chooseAction(r, c) {
-            if (policyEl.value === "uniform") {
-                return ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
-            }
-            const epsilon = 0.2;
-            if (Math.random() < epsilon) {
-                return ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
-            }
-            const greedy = greedyActions(r, c);
-            return greedy[Math.floor(Math.random() * greedy.length)];
+        function handValue(cards) {
+            let sum = cards.reduce((a, b) => a + b, 0);
+            let usableAce = cards.includes(1) && sum + 10 <= 21;
+            if (usableAce) sum += 10;
+            return { sum, usableAce };
         }
 
-        function greedyActions(r, c) {
-            let best = -Infinity;
-            let bestAs = [];
-            for (const a of ACTIONS) {
-                const out = stepDynamics(r, c, a);
-                const term = out.reward + parseFloat(gammaEl.value) * V[idx(out.r2, out.c2)];
-                if (term > best + 1e-12) {
-                    best = term;
-                    bestAs = [a];
-                } else if (Math.abs(term - best) <= 1e-12) {
-                    bestAs.push(a);
+        function policyPlayer(sum) {
+            return sum >= 20 ? "stick" : "hit";
+        }
+
+        function playEpisode() {
+            let player = [drawCard(), drawCard()];
+            let dealer = [drawCard(), drawCard()];
+            let stateLog = [];
+
+            while (true) {
+                const { sum, usableAce } = handValue(player);
+                if (sum > 21) {
+                    return { reward: -1, states: stateLog };
                 }
+                if (sum >= PLAYER_MIN) {
+                    stateLog.push({ sum, dealer: dealer[0], usableAce });
+                }
+                const action = policyPlayer(sum);
+                if (action === "stick") break;
+                player.push(drawCard());
             }
-            return bestAs;
+
+            let dealerValue = handValue(dealer);
+            while (dealerValue.sum < 17) {
+                dealer.push(drawCard());
+                dealerValue = handValue(dealer);
+            }
+
+            const playerValue = handValue(player);
+            if (dealerValue.sum > 21) return { reward: 1, states: stateLog };
+            if (playerValue.sum > dealerValue.sum) return { reward: 1, states: stateLog };
+            if (playerValue.sum < dealerValue.sum) return { reward: -1, states: stateLog };
+            return { reward: 0, states: stateLog };
         }
 
-        function generateEpisode() {
-            let r = 1;
-            let c = 1;
-            if (startsEl.value === "all") {
-                r = Math.floor(Math.random() * GRID.rows);
-                c = Math.floor(Math.random() * GRID.cols);
-            }
-            const trajectory = [];
-            for (let t = 0; t < MAX_STEPS; t++) {
-                if (isTerminal(r, c)) break;
-                const action = chooseAction(r, c);
-                const out = stepDynamics(r, c, action);
-                trajectory.push({ r, c, reward: out.reward });
-                r = out.r2;
-                c = out.c2;
-                if (isTerminal(r, c)) break;
-            }
-            if (isTerminal(r, c)) {
-                trajectory.push({ r, c, reward: 0, terminal: true });
-            }
-            return trajectory;
-        }
-
-        function updateValues(trajectory) {
-            const gamma = parseFloat(gammaEl.value);
-            let G = 0;
+        function updateValuesFromEpisode(episode) {
             const visited = new Set();
-            for (let t = trajectory.length - 1; t >= 0; t--) {
-                const step = trajectory[t];
-                G = step.reward + gamma * G;
-                const stateKey = `${step.r},${step.c}`;
-                const stateIndex = idx(step.r, step.c);
-                const firstVisit = !visited.has(stateKey);
-                if (estimatorEl.value === "every" || firstVisit) {
-                    returns[stateIndex].push(G);
-                    V[stateIndex] = average(returns[stateIndex]);
-                    recentVisits.push({ episode, step: t, G, r: step.r, c: step.c });
-                }
-                visited.add(stateKey);
-            }
-            return G;
+            episode.states.forEach((state) => {
+                const key = `${state.sum}-${state.dealer}-${state.usableAce}`;
+                if (estimatorEl.value === "first" && visited.has(key)) return;
+                visited.add(key);
+                returns[state.usableAce][state.sum][state.dealer].push(episode.reward);
+                values[state.usableAce][state.sum][state.dealer] = average(
+                    returns[state.usableAce][state.sum][state.dealer]
+                );
+                recentVisits.push({
+                    episode: episodeCount,
+                    sum: state.sum,
+                    dealer: state.dealer,
+                    usableAce: state.usableAce,
+                    reward: episode.reward,
+                });
+            });
         }
 
         function average(list) {
@@ -574,27 +543,24 @@
         }
 
         function runBatch(count) {
-            let batchReturn = 0;
+            let total = 0;
             for (let i = 0; i < count; i++) {
-                const traj = generateEpisode();
-                const epReturn = updateValues(traj);
-                batchReturn += epReturn;
-                episode += 1;
-                avgReturns.push(epReturn);
+                const ep = playEpisode();
+                updateValuesFromEpisode(ep);
+                total += ep.reward;
+                episodeCount += 1;
+                avgReturns.push(total / (i + 1));
             }
-            const lastReturn = batchReturn / count;
-            episodeChip.textContent = episode;
-            returnChip.textContent = lastReturn.toFixed(2);
+            episodeChip.textContent = episodeCount;
+            returnChip.textContent = (total / count).toFixed(2);
             draw();
-            if (selected) {
-                updateReturns(selected.r, selected.c);
-            }
+            if (selected) updateReturns(selected);
         }
 
         function resetAll() {
-            V = V.map((_, i) => isTerminal(Math.floor(i / GRID.cols), i % GRID.cols) ? 0 : 0);
-            returns = Array.from({ length: GRID.rows * GRID.cols }, () => []);
-            episode = 0;
+            values = initValues();
+            returns = initReturns();
+            episodeCount = 0;
             avgReturns = [];
             recentVisits = [];
             episodeChip.textContent = "0";
@@ -602,66 +568,61 @@
             draw();
         }
 
-        function drawGrid() {
-            const w = gridCanvas.width;
-            const h = gridCanvas.height;
-            gridCtx.clearRect(0, 0, w, h);
-            const pad = 20;
-            const cellW = (w - 2 * pad) / GRID.cols;
-            const cellH = (h - 2 * pad) / GRID.rows;
+        function colorForValue(v) {
+            const t = (v + 1) / 2;
+            const r = Math.round(27 + (118 - 27) * t);
+            const g = Math.round(38 + (247 - 38) * t);
+            const b = Math.round(87 + (196 - 87) * t);
+            return `rgb(${r}, ${g}, ${b})`;
+        }
 
-            const minV = Math.min(...V);
-            const maxV = Math.max(...V);
-            const range = Math.max(1e-6, maxV - minV);
+        function drawSurface(ctx, usableAce) {
+            const w = ctx.canvas.width;
+            const h = ctx.canvas.height;
+            ctx.clearRect(0, 0, w, h);
+            const pad = 40;
+            const cellW = (w - 2 * pad) / (DEALER_MAX - DEALER_MIN + 1);
+            const cellH = (h - 2 * pad) / (PLAYER_MAX - PLAYER_MIN + 1);
 
-            for (let r = 0; r < GRID.rows; r++) {
-                for (let c = 0; c < GRID.cols; c++) {
-                    const i = idx(r, c);
-                    const x = pad + c * cellW;
-                    const y = pad + r * cellH;
-                    const v = V[i];
-                    const t = (v - minV) / range;
-                    const color = `rgba(122, 162, 255, ${0.15 + 0.65 * t})`;
-                    gridCtx.fillStyle = color;
-                    gridCtx.fillRect(x, y, cellW, cellH);
-                    gridCtx.strokeStyle = "rgba(255,255,255,0.15)";
-                    gridCtx.strokeRect(x, y, cellW, cellH);
-
-                    if (isTerminal(r, c)) {
-                        gridCtx.fillStyle = "rgba(118, 247, 196, 0.25)";
-                        gridCtx.fillRect(x, y, cellW, cellH);
-                    }
-
-                    gridCtx.fillStyle = "#e9eefc";
-                    gridCtx.font = "14px ui-monospace";
-                    gridCtx.fillText(v.toFixed(2), x + 8, y + 18);
-
-                    if (!isTerminal(r, c)) {
-                        const actions = greedyActions(r, c);
-                        gridCtx.strokeStyle = "#76f7c4";
-                        gridCtx.lineWidth = 2;
-                        actions.forEach(a => {
-                            const cx = x + cellW / 2;
-                            const cy = y + cellH / 2 + 6;
-                            const dx = a.dc * (cellW * 0.18);
-                            const dy = a.dr * (cellH * 0.18);
-                            gridCtx.beginPath();
-                            gridCtx.moveTo(cx, cy);
-                            gridCtx.lineTo(cx + dx, cy + dy);
-                            gridCtx.stroke();
-                            gridCtx.beginPath();
-                            gridCtx.arc(cx + dx, cy + dy, 3, 0, Math.PI * 2);
-                            gridCtx.fillStyle = "#76f7c4";
-                            gridCtx.fill();
-                        });
-                    }
-
-                    if (selected && selected.r === r && selected.c === c) {
-                        gridCtx.strokeStyle = "#ffcc66";
-                        gridCtx.lineWidth = 3;
-                        gridCtx.strokeRect(x + 2, y + 2, cellW - 4, cellH - 4);
-                    }
+            for (let sum = PLAYER_MIN; sum <= PLAYER_MAX; sum++) {
+                for (let dealer = DEALER_MIN; dealer <= DEALER_MAX; dealer++) {
+                    const x = pad + (dealer - DEALER_MIN) * cellW;
+                    const y = pad + (PLAYER_MAX - sum) * cellH;
+                    const v = values[usableAce][sum][dealer];
+                    ctx.fillStyle = colorForValue(v);
+                    ctx.fillRect(x, y, cellW, cellH);
+                    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+                    ctx.strokeRect(x, y, cellW, cellH);
+                    ctx.fillStyle = "rgba(255,255,255,0.8)";
+                    ctx.font = "11px ui-monospace";
+                    ctx.fillText(v.toFixed(2), x + 4, y + 14);
                 }
+            }
+
+            ctx.fillStyle = "#a9b4d6";
+            ctx.font = "12px ui-monospace";
+            ctx.fillText("Dealer showing", pad, h - 10);
+            ctx.save();
+            ctx.translate(12, h / 2 + 30);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText("Player sum", 0, 0);
+            ctx.restore();
+
+            for (let dealer = DEALER_MIN; dealer <= DEALER_MAX; dealer++) {
+                const x = pad + (dealer - DEALER_MIN + 0.5) * cellW;
+                ctx.fillText(dealer === 1 ? "A" : dealer.toString(), x - 4, h - pad + 16);
+            }
+            for (let sum = PLAYER_MIN; sum <= PLAYER_MAX; sum++) {
+                const y = pad + (PLAYER_MAX - sum + 0.5) * cellH;
+                ctx.fillText(sum.toString(), 8, y + 4);
+            }
+
+            if (selected && selected.usableAce === usableAce) {
+                const sx = pad + (selected.dealer - DEALER_MIN) * cellW;
+                const sy = pad + (PLAYER_MAX - selected.sum) * cellH;
+                ctx.strokeStyle = "#ffcc66";
+                ctx.lineWidth = 3;
+                ctx.strokeRect(sx + 2, sy + 2, cellW - 4, cellH - 4);
             }
         }
 
@@ -687,79 +648,81 @@
                 else returnCtx.lineTo(x, y);
             });
             returnCtx.stroke();
-
             returnCtx.fillStyle = "#a9b4d6";
             returnCtx.font = "12px ui-monospace";
-            returnCtx.fillText(`episodes: ${episode}`, pad + 6, pad + 14);
+            returnCtx.fillText(`episodes: ${episodeCount}`, pad + 6, pad + 14);
         }
 
         function draw() {
-            drawGrid();
+            drawSurface(usableCtx, true);
+            drawSurface(noAceCtx, false);
             drawReturns();
         }
 
-        function updateReturns(r, c) {
-            selected = { r, c };
-            stateChip.textContent = `(${r}, ${c})`;
+        function updateReturns(state) {
+            selected = state;
+            stateChip.textContent = `${state.sum}, ${state.dealer}, ${state.usableAce ? "usable" : "no ace"}`;
             returnsTable.innerHTML = "";
-            const entries = recentVisits.filter(v => v.r === r && v.c === c).slice(-12).reverse();
+            const entries = recentVisits
+                .filter(v => v.sum === state.sum && v.dealer === state.dealer && v.usableAce === state.usableAce)
+                .slice(-MAX_RECENT)
+                .reverse();
             if (entries.length === 0) {
                 returnsHint.textContent = "No sampled returns for this state yet.";
                 return;
             }
-            returnsHint.textContent = "Recent Monte Carlo returns for selected state.";
+            returnsHint.textContent = "Recent returns for selected state.";
             entries.forEach(item => {
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td>${item.episode}</td>
-                    <td>${item.step}</td>
-                    <td>${item.G.toFixed(3)}</td>
+                    <td>${item.sum}, ${item.dealer}, ${item.usableAce ? "usable" : "no ace"}</td>
+                    <td>${item.reward.toFixed(0)}</td>
                 `;
                 returnsTable.appendChild(tr);
             });
         }
 
-        gridCanvas.addEventListener("click", (e) => {
-            const rect = gridCanvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) * (gridCanvas.width / rect.width);
-            const y = (e.clientY - rect.top) * (gridCanvas.height / rect.height);
-            const pad = 20;
-            const cellW = (gridCanvas.width - 2 * pad) / GRID.cols;
-            const cellH = (gridCanvas.height - 2 * pad) / GRID.rows;
-            const c = Math.floor((x - pad) / cellW);
-            const r = Math.floor((y - pad) / cellH);
-            if (r >= 0 && r < GRID.rows && c >= 0 && c < GRID.cols) {
-                updateReturns(r, c);
+        function surfaceClick(e, canvas, usableAce) {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+            const pad = 40;
+            const cellW = (canvas.width - 2 * pad) / (DEALER_MAX - DEALER_MIN + 1);
+            const cellH = (canvas.height - 2 * pad) / (PLAYER_MAX - PLAYER_MIN + 1);
+            const dealer = Math.floor((x - pad) / cellW) + DEALER_MIN;
+            const sum = PLAYER_MAX - Math.floor((y - pad) / cellH);
+            if (dealer >= DEALER_MIN && dealer <= DEALER_MAX && sum >= PLAYER_MIN && sum <= PLAYER_MAX) {
+                updateReturns({ sum, dealer, usableAce });
                 draw();
             }
-        });
+        }
+
+        usableCanvas.addEventListener("click", (e) => surfaceClick(e, usableCanvas, true));
+        noAceCanvas.addEventListener("click", (e) => surfaceClick(e, noAceCanvas, false));
 
         document.getElementById("run").addEventListener("click", () => {
             runBatch(parseInt(episodesEl.value, 10));
         });
         document.getElementById("reset").addEventListener("click", () => {
             resetAll();
-            updateReturns(1, 1);
+            updateReturns({ sum: 20, dealer: 10, usableAce: false });
         });
         document.getElementById("play").addEventListener("click", () => {
             if (timer) return;
-            timer = setInterval(() => runBatch(parseInt(episodesEl.value, 10)), 500);
+            timer = setInterval(() => runBatch(parseInt(episodesEl.value, 10)), parseInt(speedEl.value, 10));
         });
         document.getElementById("stop").addEventListener("click", () => {
             clearInterval(timer);
             timer = null;
         });
-        gammaEl.addEventListener("input", () => {
-            gammaValEl.textContent = parseFloat(gammaEl.value).toFixed(2);
-            draw();
-        });
         estimatorEl.addEventListener("change", () => {
-            draw();
+            resetAll();
+            updateReturns({ sum: 20, dealer: 10, usableAce: false });
         });
 
-        gammaValEl.textContent = parseFloat(gammaEl.value).toFixed(2);
         resetAll();
-        updateReturns(1, 1);
+        updateReturns({ sum: 20, dealer: 10, usableAce: false });
     </script>
 </body>
 

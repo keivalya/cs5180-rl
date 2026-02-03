@@ -1,58 +1,453 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>CS 5180/4180 - RL</title>
-    <link rel="stylesheet" href="style.css">
     <style>
+        @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500&family=Space+Grotesk:wght@400;600&display=swap");
+
+        :root {
+            --bg: #0b1020;
+            --panel: #121a33;
+            --panel2: #0f1630;
+            --text: #e9eefc;
+            --muted: #a9b4d6;
+            --accent: #7aa2ff;
+            --good: #76f7c4;
+            --glow: rgba(122, 162, 255, .25);
+            --line: #24305a;
+            --shadow: 0 18px 40px rgba(0, 0, 0, .35);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
+            margin: 0;
+            font-family: "Space Grotesk", "IBM Plex Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+            color: var(--text);
+            position: relative;
+            background: var(--bg);
+        }
+
+        .bg,
+        .bg::before,
+        .bg::after {
+            content: "";
+            position: fixed;
+            inset: -20% -10%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: .6;
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+            /* Let clicks pass through */
+        }
+
+        .bg {
+            background:
+                radial-gradient(1200px 700px at 15% 10%, #1a2550 0%, var(--bg) 60%),
+                repeating-linear-gradient(90deg, rgba(255, 255, 255, .02) 0 1px, transparent 1px 120px),
+                repeating-linear-gradient(0deg, rgba(255, 255, 255, .02) 0 1px, transparent 1px 120px);
+            background-size: 140% 140%, 120px 120px, 120px 120px;
+            animation: baseDrift 40s linear infinite;
+        }
+
+        .bg::before {
+            background:
+                radial-gradient(600px 400px at 20% 20%, rgba(122, 162, 255, .18), transparent 60%),
+                radial-gradient(700px 500px at 80% 30%, rgba(118, 247, 196, .12), transparent 60%),
+                radial-gradient(500px 350px at 30% 80%, rgba(122, 162, 255, .10), transparent 60%);
+            animation: driftA 22s ease-in-out infinite alternate;
+        }
+
+        .bg::after {
+            background:
+                radial-gradient(700px 500px at 70% 70%, rgba(122, 162, 255, .12), transparent 60%),
+                radial-gradient(600px 400px at 10% 60%, rgba(118, 247, 196, .08), transparent 60%);
+            mix-blend-mode: screen;
+            animation: driftB 28s ease-in-out infinite alternate;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .page {
+            min-height: 100vh;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            padding: 18px 18px 8px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .kicker {
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+            font-size: 12px;
+            letter-spacing: .3px;
+            color: var(--muted);
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, .1);
+            background: rgba(255, 255, 255, .04);
+        }
+
+        .hero {
+            display: grid;
+            gap: 12px;
+            padding: 10px 0 6px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(26px, 3.6vw, 40px);
+            letter-spacing: .2px;
+        }
+
+        .subtitle {
+            margin: 0;
+            color: var(--muted);
+            max-width: 760px;
+            line-height: 1.5;
+        }
+
+        main {
+            padding: 8px 18px 26px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 14px;
+        }
+
+        .card {
+            grid-column: span 6;
+            background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .02));
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: grid;
+            gap: 10px;
+            padding: 16px;
+            position: relative;
+            animation: rise .6s ease both;
+        }
+
+        .card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(240px 140px at 20% 0%, rgba(122, 162, 255, .12), transparent 60%);
+            pointer-events: none;
+        }
+
+        .card-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card h3 {
+            margin: 0;
+            font-size: 14px;
+            letter-spacing: .4px;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        .badge {
+            font-size: 11px;
+            color: var(--muted);
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 999px;
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, .04);
+        }
+
+        .links {
+            display: grid;
+            gap: 10px;
+        }
+
+        .link {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(255, 255, 255, .04);
+            transition: transform .15s ease, border-color .15s ease, background .15s ease;
+            height: 60px;
+            width: 100%;
+        }
+
+        .link>div {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .link strong {
+            font-weight: 500;
+        }
+
+        .link .arrow {
+            color: var(--accent);
+            font-size: 16px;
+        }
+
+        .link span {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .link:hover {
+            transform: translateY(-1px);
+            border-color: rgba(122, 162, 255, .45);
+            background: rgba(122, 162, 255, .12);
+            box-shadow: 0 0 0 1px var(--glow);
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: var(--good);
+            box-shadow: 0 0 12px rgba(118, 247, 196, .6);
+        }
+
+        @keyframes rise {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes driftA {
+            0% {
+                transform: translate3d(-2%, -1%, 0) scale(1);
+            }
+
+            50% {
+                transform: translate3d(1%, 2%, 0) scale(1.03);
+            }
+
+            100% {
+                transform: translate3d(2%, -2%, 0) scale(1.02);
+            }
+        }
+
+        @keyframes driftB {
+            0% {
+                transform: translate3d(1%, 2%, 0) scale(1.01);
+            }
+
+            50% {
+                transform: translate3d(-2%, 1%, 0) scale(1.04);
+            }
+
+            100% {
+                transform: translate3d(2%, -1%, 0) scale(1.02);
+            }
+        }
+
+        @keyframes baseDrift {
+            0% {
+                background-position: 0% 0%, 0 0, 0 0;
+            }
+
+            50% {
+                background-position: 60% 30%, 30px 15px, -15px 30px;
+            }
+
+            100% {
+                background-position: 120% 60%, 60px 30px, -30px 60px;
+            }
+        }
+
+        .card:nth-child(1) {
+            animation-delay: .02s;
+        }
+
+        .card:nth-child(2) {
+            animation-delay: .06s;
+        }
+
+        .card:nth-child(3) {
+            animation-delay: .10s;
+        }
+
+        .card:nth-child(4) {
+            animation-delay: .14s;
+        }
+
+        .card:nth-child(5) {
+            animation-delay: .18s;
+        }
+
+        footer {
+            padding: 6px 18px 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        @media (max-width: 860px) {
+            .card {
+                grid-column: span 12;
+            }
         }
     </style>
 </head>
 
 <body>
-    <h1>CS 5180/4180 - Reinforcement Learning and Sequential Decision Making</h1>
-    <div class="container">
-        <h3>Bandits</h3>
-        <ul>
-            <li>
-                <a href="bandits.html">Multi-Armed Bandits Problem</a>
-            </li>
+    <div class="bg" aria-hidden="true"></div>
+    <canvas id="bg-canvas"></canvas>
+    <div class="page">
+        <header>
+            <div class="kicker">CS 5180/4180 • Reinforcement Learning</div>
+            <div class="hero">
+                <h1>Interactive learning tools for reinforcement learning.</h1>
+                <p class="subtitle">
+                    Explore hands-on simulations, visual walkthroughs, and guided experiments. Each chapter opens an
+                    interactive learning tool.
+                </p>
+                <div class="chip">
+                    <span class="dot"></span>
+                    Tap any chapter to begin
+                </div>
+            </div>
+        </header>
 
-        </ul>
-        <h3>Markov Decision Processes</h3>
-        <ul>
-            <li>
-                <a href="mdp.html">MDP</a>
-            </li>
-        </ul>
-        <h3>Dynamic Programming</h3>
-        <ul>
-            <li>
-                <a href="dp.html">Dynamic Programming (DP)</a>
-            </li>
-        </ul>
-        <h3>Monte Carlo Methods</h3>
-        <ul>
-            <li>
-                <a href="mc.html">Monte Carlo Methods</a>
-            </li>
-            <li>
-                <a href="mc_es.html">Monte Carlo ES (Blackjack)</a>
-            </li>
-        </ul>
-        <h3>Temporal-Difference Learning</h3>
-        <ul>
-            <li>
-                <a href="windy_gw.html">Windy Gridworld</a>
-            </li>
-            <li>
-                <a href="random_walk.html">Random Walk</a>
-            </li>
-        </ul>
+        <main>
+            <section class="grid" aria-label="Chapters and pages">
+                <article class="card">
+                    <div class="card-head">
+                        <h3>Bandits</h3>
+                        <span class="badge">Chapter 01</span>
+                    </div>
+                    <div class="links">
+                        <a class="link" href="bandits.html">
+                            <div><strong>Multi-Armed Bandits Problem</strong></div>
+                            <span class="arrow">→</span>
+                        </a>
+                    </div>
+                </article>
+
+                <article class="card">
+                    <div class="card-head">
+                        <h3>Markov Decision Processes</h3>
+                        <span class="badge">Chapter 02</span>
+                    </div>
+                    <div class="links">
+                        <a class="link" href="mdp.html">
+                            <div><strong>MDP</strong></div>
+                            <span class="arrow">→</span>
+                        </a>
+                    </div>
+                </article>
+
+                <article class="card">
+                    <div class="card-head">
+                        <h3>Dynamic Programming</h3>
+                        <span class="badge">Chapter 03</span>
+                    </div>
+                    <div class="links">
+                        <a class="link" href="dp.html">
+                            <div><strong>Dynamic Programming (DP)</strong></div>
+                            <span class="arrow">→</span>
+                        </a>
+                    </div>
+                </article>
+
+                <article class="card">
+                    <div class="card-head">
+                        <h3>Monte Carlo Methods</h3>
+                        <span class="badge">Chapter 04</span>
+                    </div>
+                    <div class="links">
+                        <a class="link" href="mc.html">
+                            <div><strong>Monte Carlo Methods</strong></div>
+                            <span class="arrow">→</span>
+                        </a>
+                        <a class="link" href="mc_es.html">
+                            <div><strong>Monte Carlo ES (Blackjack)</strong></div>
+                            <span class="arrow">→</span>
+                        </a>
+                    </div>
+                </article>
+
+                <article class="card">
+                    <div class="card-head">
+                        <h3>Temporal-Difference Learning</h3>
+                        <span class="badge">Chapter 05</span>
+                    </div>
+                    <!-- coming soon -->
+                    <!-- <div class="links">
+                        <a class="link" href="windy_gw.html">
+                            <div><strong>Windy Gridworld</strong></div>
+                            <span class="arrow">→</span>
+                        </a>
+                        <a class="link" href="random_walk.html">
+                            <div><strong>Random Walk</strong></div>
+                            <span class="arrow">→</span>
+                        </a>
+                    </div> -->
+                </article>
+            </section>
+        </main>
+
+        <footer>
+            Designed with ❤️ by <a href="https://keivalya.com" target="_blank">Keivalya Pandya</a>.
+        </footer>
     </div>
+    <script src="background-animation.js"></script>
 </body>
 
 </html>

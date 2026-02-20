@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Temporal-Difference Learning</title>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --panel: #121a33;
+            --panel2: #0f1630;
+            --text: #e9eefc;
+            --muted: #a9b4d6;
+            --accent: #7aa2ff;
+            --good: #76f7c4;
+            --warn: #ffcc66;
+            --bad: #ff6b6b;
+            --line: #24305a;
+            --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+            background: radial-gradient(1200px 700px at 20% 10%, #1a2550 0%, var(--bg) 60%) fixed;
+            color: var(--text);
+        }
+
+        header {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+            background: rgba(0, 0, 0, .18);
+            position: sticky;
+            top: 0;
+            backdrop-filter: blur(6px);
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        header h1 {
+            font-size: 15px;
+            margin: 0;
+            letter-spacing: .2px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            font-size: 12px;
+            padding: 3px 8px;
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .04);
+            color: var(--muted);
+        }
+
+        nav a {
+            color: var(--muted);
+            text-decoration: none;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .04);
+            font-size: 12px;
+        }
+
+        nav a:hover {
+            background: rgba(255, 255, 255, .08);
+            color: var(--text);
+        }
+
+        .wrap {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 14px;
+            padding: 14px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 1000px) {
+            .wrap {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .03));
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card h2 {
+            margin: 0;
+            padding: 12px 14px;
+            font-size: 13px;
+            letter-spacing: .25px;
+            color: var(--muted);
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(255, 255, 255, .03);
+        }
+
+        .card .body {
+            padding: 12px 14px;
+        }
+
+        .help {
+            font-size: 12px;
+            line-height: 1.45;
+            color: var(--muted);
+        }
+
+        .kbd {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .22);
+            color: var(--text);
+        }
+
+        .split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .col {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chip {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, .25);
+            border: 1px solid rgba(255, 255, 255, .08);
+            color: var(--muted);
+        }
+
+        label {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="range"],
+        input[type="number"] {
+            width: 100%;
+        }
+
+        input[type="number"] {
+            padding: 9px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .25);
+            color: var(--text);
+            outline: none;
+        }
+
+        .btn {
+            padding: 10px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .06);
+            color: var(--text);
+            cursor: pointer;
+            user-select: none;
+            font-weight: 600;
+            letter-spacing: .2px;
+            transition: transform .05s ease, background .12s ease;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, .10);
+        }
+
+        .btn:active {
+            transform: scale(.99);
+        }
+
+        .btn.primary {
+            background: rgba(122, 162, 255, .18);
+            border-color: rgba(122, 162, 255, .35);
+        }
+
+        .btn.primary:hover {
+            background: rgba(122, 162, 255, .24);
+        }
+
+        .btn.danger {
+            background: rgba(255, 107, 107, .14);
+            border-color: rgba(255, 107, 107, .35);
+        }
+
+        .btn.danger:hover {
+            background: rgba(255, 107, 107, .2);
+        }
+
+        .canvasWrap {
+            background: rgba(0, 0, 0, .22);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 14px;
+            padding: 10px;
+            position: relative;
+        }
+
+        .miniTitle {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        canvas {
+            width: 100%;
+            display: block;
+            border-radius: 10px;
+            background: #0b1228;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 6px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+        }
+
+        th {
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .swatch {
+            width: 12px;
+            height: 12px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, .16);
+        }
+
+        .math {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+            background: rgba(0, 0, 0, .2);
+            padding: 8px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .08);
+        }
+
+        .mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>
+            Temporal-Difference Learning
+            <span class="tag">TD(0)</span>
+            <span class="tag">Bootstrapping</span>
+            <span class="tag">Random Walk</span>
+        </h1>
+        <nav class="row">
+            <a href="index.html">← Home</a>
+        </nav>
+    </header>
+
+    <div class="wrap">
+        <section class="card">
+            <h2>Controls</h2>
+            <div class="body">
+                <div class="split">
+                    <div class="col">
+                        <label>Episodes / batch</label>
+                        <input id="episodes" type="number" min="1" max="10000" value="10" />
+                    </div>
+                    <div class="col">
+                        <label>Auto-play speed (ms)</label>
+                        <input id="speed" type="number" min="100" max="5000" value="500" />
+                    </div>
+                </div>
+
+                <div style="height:10px;"></div>
+
+                <div class="split">
+                    <div class="col">
+                        <label>TD step size α <span class="kbd" id="alphaTdVal">0.10</span></label>
+                        <input id="alphaTd" type="range" min="0.01" max="0.5" step="0.01" value="0.1" />
+                    </div>
+                    <div class="col">
+                        <label>MC step size α <span class="kbd" id="alphaMcVal">0.02</span></label>
+                        <input id="alphaMc" type="range" min="0.01" max="0.5" step="0.01" value="0.02" />
+                    </div>
+                </div>
+
+                <div style="height:10px;"></div>
+
+                <div class="row">
+                    <button class="btn primary" id="reset">Reset</button>
+                    <button class="btn" id="run">Run batch</button>
+                    <button class="btn" id="play">Play</button>
+                    <button class="btn danger" id="stop">Stop</button>
+                </div>
+
+                <div style="margin-top:12px;">
+                    <div class="chips">
+                        <div class="chip">episodes: <b id="episodeChip">0</b></div>
+                        <div class="chip">TD RMSE: <b id="rmseTdChip">–</b></div>
+                        <div class="chip">MC RMSE: <b id="rmseMcChip">–</b></div>
+                    </div>
+                </div>
+            </div>
+
+            <h2>TD chapter cheat sheet</h2>
+            <div class="body">
+                <div class="help">
+                    Temporal-difference learning updates estimates from other learned estimates before the final return is known.
+                    In this random-walk example, the terminal rewards are 0 (left) and 1 (right), and true values are linear.
+                </div>
+                <div style="height:10px;"></div>
+                <div class="math">TD(0): V(S<sub>t</sub>) ← V(S<sub>t</sub>) + α [R<sub>t+1</sub> + V(S<sub>t+1</sub>) − V(S<sub>t</sub>)]</div>
+                <div style="height:8px;"></div>
+                <div class="math">MC: V(S<sub>t</sub>) ← V(S<sub>t</sub>) + α [G<sub>t</sub> − V(S<sub>t</sub>)]</div>
+            </div>
+
+            <h2>Last trajectory</h2>
+            <div class="body">
+                <div class="help" id="trajHint">Run at least one episode to inspect visited states and terminal reward.</div>
+                <div style="height:10px;"></div>
+                <table id="trajTable">
+                    <thead>
+                        <tr>
+                            <th>step</th>
+                            <th>state</th>
+                            <th>next</th>
+                            <th>reward</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Visualization</h2>
+            <div class="body">
+                <div class="canvasWrap">
+                    <div class="miniTitle"><span>State values (A-E)</span> <b>True vs TD vs MC</b></div>
+                    <canvas id="valueCanvas" width="1000" height="340"></canvas>
+                    <div class="legend">
+                        <span><span class="swatch" style="background:#76f7c4"></span> true values</span>
+                        <span><span class="swatch" style="background:#7aa2ff"></span> TD(0)</span>
+                        <span><span class="swatch" style="background:#ffcc66"></span> Monte Carlo</span>
+                    </div>
+                </div>
+
+                <div style="height:12px;"></div>
+
+                <div class="canvasWrap">
+                    <div class="miniTitle"><span>Learning curve</span> <b>RMSE by episode</b></div>
+                    <canvas id="rmseCanvas" width="1000" height="280" style="height:280px;"></canvas>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const STATES = ["L", "A", "B", "C", "D", "E", "R"];
+        const NON_TERMINAL = [1, 2, 3, 4, 5];
+        const TRUE_VALUES = [0, 1 / 6, 2 / 6, 3 / 6, 4 / 6, 5 / 6, 1];
+
+        const episodesEl = document.getElementById("episodes");
+        const speedEl = document.getElementById("speed");
+        const alphaTdEl = document.getElementById("alphaTd");
+        const alphaMcEl = document.getElementById("alphaMc");
+        const alphaTdVal = document.getElementById("alphaTdVal");
+        const alphaMcVal = document.getElementById("alphaMcVal");
+
+        const episodeChip = document.getElementById("episodeChip");
+        const rmseTdChip = document.getElementById("rmseTdChip");
+        const rmseMcChip = document.getElementById("rmseMcChip");
+        const trajHint = document.getElementById("trajHint");
+        const trajTable = document.getElementById("trajTable").querySelector("tbody");
+
+        const valueCanvas = document.getElementById("valueCanvas");
+        const valueCtx = valueCanvas.getContext("2d");
+        const rmseCanvas = document.getElementById("rmseCanvas");
+        const rmseCtx = rmseCanvas.getContext("2d");
+
+        let tdValues = [];
+        let mcValues = [];
+        let episodeCount = 0;
+        let rmseTd = [];
+        let rmseMc = [];
+        let lastTrajectory = [];
+        let timer = null;
+
+        function resetAll() {
+            tdValues = [0, 0.5, 0.5, 0.5, 0.5, 0.5, 1];
+            mcValues = [0, 0.5, 0.5, 0.5, 0.5, 0.5, 1];
+            episodeCount = 0;
+            rmseTd = [];
+            rmseMc = [];
+            lastTrajectory = [];
+            episodeChip.textContent = "0";
+            rmseTdChip.textContent = "–";
+            rmseMcChip.textContent = "–";
+            trajHint.textContent = "Run at least one episode to inspect visited states and terminal reward.";
+            renderTrajectory();
+            draw();
+        }
+
+        function stepRandomWalk(state) {
+            return Math.random() < 0.5 ? state - 1 : state + 1;
+        }
+
+        function runEpisode() {
+            const alphaTd = parseFloat(alphaTdEl.value);
+            const alphaMc = parseFloat(alphaMcEl.value);
+
+            let state = 3;
+            const visited = [];
+            const steps = [];
+
+            while (state !== 0 && state !== 6) {
+                const next = stepRandomWalk(state);
+                const reward = next === 6 ? 1 : 0;
+                visited.push(state);
+                steps.push({ state, next, reward });
+
+                tdValues[state] += alphaTd * (reward + tdValues[next] - tdValues[state]);
+                state = next;
+            }
+
+            const G = state === 6 ? 1 : 0;
+            for (const s of visited) {
+                mcValues[s] += alphaMc * (G - mcValues[s]);
+            }
+
+            episodeCount += 1;
+            lastTrajectory = steps;
+            rmseTd.push(computeRmse(tdValues));
+            rmseMc.push(computeRmse(mcValues));
+            episodeChip.textContent = episodeCount.toString();
+            rmseTdChip.textContent = rmseTd[rmseTd.length - 1].toFixed(4);
+            rmseMcChip.textContent = rmseMc[rmseMc.length - 1].toFixed(4);
+            trajHint.textContent = `Episode ${episodeCount} ended at ${state === 6 ? "right terminal (reward 1)" : "left terminal (reward 0)"}.`;
+            renderTrajectory();
+            draw();
+        }
+
+        function computeRmse(values) {
+            let sumSq = 0;
+            for (const s of NON_TERMINAL) {
+                const diff = values[s] - TRUE_VALUES[s];
+                sumSq += diff * diff;
+            }
+            return Math.sqrt(sumSq / NON_TERMINAL.length);
+        }
+
+        function runBatch() {
+            const count = Math.max(1, parseInt(episodesEl.value, 10) || 1);
+            for (let i = 0; i < count; i++) {
+                runEpisode();
+            }
+        }
+
+        function drawValues() {
+            const w = valueCanvas.width;
+            const h = valueCanvas.height;
+            valueCtx.clearRect(0, 0, w, h);
+
+            const pad = 60;
+            const spanW = w - pad * 2;
+            const spanH = h - pad * 2;
+            const xFor = (i) => pad + (spanW * i) / (NON_TERMINAL.length - 1);
+            const yFor = (v) => h - pad - spanH * v;
+
+            valueCtx.strokeStyle = "rgba(255,255,255,0.2)";
+            valueCtx.lineWidth = 1;
+            valueCtx.beginPath();
+            valueCtx.moveTo(pad, h - pad);
+            valueCtx.lineTo(w - pad, h - pad);
+            valueCtx.lineTo(w - pad, pad);
+            valueCtx.stroke();
+
+            valueCtx.fillStyle = "#a9b4d6";
+            valueCtx.font = "12px ui-monospace";
+            valueCtx.fillText("0.0", pad - 28, h - pad + 4);
+            valueCtx.fillText("1.0", pad - 28, pad + 4);
+
+            function plot(values, color) {
+                valueCtx.strokeStyle = color;
+                valueCtx.fillStyle = color;
+                valueCtx.lineWidth = 3;
+                valueCtx.beginPath();
+                NON_TERMINAL.forEach((s, i) => {
+                    const x = xFor(i);
+                    const y = yFor(values[s]);
+                    if (i === 0) valueCtx.moveTo(x, y);
+                    else valueCtx.lineTo(x, y);
+                });
+                valueCtx.stroke();
+                NON_TERMINAL.forEach((s, i) => {
+                    const x = xFor(i);
+                    const y = yFor(values[s]);
+                    valueCtx.beginPath();
+                    valueCtx.arc(x, y, 4, 0, Math.PI * 2);
+                    valueCtx.fill();
+                });
+            }
+
+            plot(TRUE_VALUES, "#76f7c4");
+            plot(tdValues, "#7aa2ff");
+            plot(mcValues, "#ffcc66");
+
+            NON_TERMINAL.forEach((s, i) => {
+                const x = xFor(i);
+                valueCtx.fillStyle = "#a9b4d6";
+                valueCtx.fillText(STATES[s], x - 4, h - pad + 18);
+            });
+        }
+
+        function drawRmse() {
+            const w = rmseCanvas.width;
+            const h = rmseCanvas.height;
+            rmseCtx.clearRect(0, 0, w, h);
+
+            const pad = 42;
+            const spanW = w - pad * 2;
+            const spanH = h - pad * 2;
+
+            rmseCtx.strokeStyle = "rgba(255,255,255,0.18)";
+            rmseCtx.strokeRect(pad, pad, spanW, spanH);
+
+            if (rmseTd.length === 0) return;
+
+            const maxLen = rmseTd.length;
+            const maxRmse = Math.max(0.01, ...rmseTd, ...rmseMc) * 1.1;
+            const xFor = (i) => pad + (spanW * i) / Math.max(1, maxLen - 1);
+            const yFor = (v) => pad + spanH - (spanH * v) / maxRmse;
+
+            function plot(series, color) {
+                rmseCtx.strokeStyle = color;
+                rmseCtx.lineWidth = 2;
+                rmseCtx.beginPath();
+                series.forEach((v, i) => {
+                    const x = xFor(i);
+                    const y = yFor(v);
+                    if (i === 0) rmseCtx.moveTo(x, y);
+                    else rmseCtx.lineTo(x, y);
+                });
+                rmseCtx.stroke();
+            }
+
+            plot(rmseTd, "#7aa2ff");
+            plot(rmseMc, "#ffcc66");
+
+            rmseCtx.fillStyle = "#a9b4d6";
+            rmseCtx.font = "11px ui-monospace";
+            rmseCtx.fillText(`episodes: ${maxLen}`, pad + 8, pad + 14);
+            rmseCtx.fillText(`max RMSE: ${maxRmse.toFixed(3)}`, pad + 8, pad + 30);
+        }
+
+        function renderTrajectory() {
+            trajTable.innerHTML = "";
+            if (lastTrajectory.length === 0) return;
+            lastTrajectory.slice(0, 20).forEach((row, i) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${i + 1}</td>
+                    <td class="mono">${STATES[row.state]}</td>
+                    <td class="mono">${STATES[row.next]}</td>
+                    <td class="mono">${row.reward}</td>
+                `;
+                trajTable.appendChild(tr);
+            });
+        }
+
+        function draw() {
+            drawValues();
+            drawRmse();
+        }
+
+        function stopPlay() {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+        }
+
+        document.getElementById("reset").addEventListener("click", () => {
+            stopPlay();
+            resetAll();
+        });
+        document.getElementById("run").addEventListener("click", runBatch);
+        document.getElementById("play").addEventListener("click", () => {
+            stopPlay();
+            const speed = Math.max(100, parseInt(speedEl.value, 10) || 500);
+            timer = setInterval(runBatch, speed);
+        });
+        document.getElementById("stop").addEventListener("click", stopPlay);
+
+        alphaTdEl.addEventListener("input", () => {
+            alphaTdVal.textContent = parseFloat(alphaTdEl.value).toFixed(2);
+        });
+        alphaMcEl.addEventListener("input", () => {
+            alphaMcVal.textContent = parseFloat(alphaMcEl.value).toFixed(2);
+        });
+
+        alphaTdVal.textContent = parseFloat(alphaTdEl.value).toFixed(2);
+        alphaMcVal.textContent = parseFloat(alphaMcEl.value).toFixed(2);
+        resetAll();
+    </script>
+</body>
+
+</html>

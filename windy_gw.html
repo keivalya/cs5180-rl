@@ -1,1 +1,713 @@
-[[work in progress]]
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Windy Gridworld</title>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --text: #e9eefc;
+            --muted: #a9b4d6;
+            --accent: #7aa2ff;
+            --good: #76f7c4;
+            --warn: #ffcc66;
+            --bad: #ff6b6b;
+            --line: #24305a;
+            --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+            background: radial-gradient(1200px 700px at 20% 10%, #1a2550 0%, var(--bg) 60%) fixed;
+            color: var(--text);
+        }
+
+        header {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+            background: rgba(0, 0, 0, .18);
+            position: sticky;
+            top: 0;
+            backdrop-filter: blur(6px);
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        header h1 {
+            font-size: 15px;
+            margin: 0;
+            letter-spacing: .2px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            font-size: 12px;
+            padding: 3px 8px;
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .04);
+            color: var(--muted);
+        }
+
+        .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+        nav a {
+            color: var(--muted);
+            text-decoration: none;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .04);
+            font-size: 12px;
+        }
+
+        nav a:hover {
+            background: rgba(255, 255, 255, .08);
+            color: var(--text);
+        }
+
+        .wrap {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 14px;
+            padding: 14px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 1000px) {
+            .wrap { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .03));
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card h2 {
+            margin: 0;
+            padding: 12px 14px;
+            font-size: 13px;
+            letter-spacing: .25px;
+            color: var(--muted);
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(255, 255, 255, .03);
+        }
+
+        .card .body { padding: 12px 14px; }
+
+        .col { display: flex; flex-direction: column; gap: 6px; }
+
+        .split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        label {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="range"], input[type="number"], select { width: 100%; }
+
+        input[type="number"], select {
+            padding: 9px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .25);
+            color: var(--text);
+            outline: none;
+        }
+
+        .kbd {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .22);
+            color: var(--text);
+        }
+
+        .btn {
+            padding: 10px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .06);
+            color: var(--text);
+            cursor: pointer;
+            user-select: none;
+            font-weight: 600;
+            letter-spacing: .2px;
+        }
+
+        .btn.primary {
+            background: rgba(122, 162, 255, .18);
+            border-color: rgba(122, 162, 255, .35);
+        }
+
+        .btn.danger {
+            background: rgba(255, 107, 107, .14);
+            border-color: rgba(255, 107, 107, .35);
+        }
+
+        .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+        .chip {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, .25);
+            border: 1px solid rgba(255, 255, 255, .08);
+            color: var(--muted);
+        }
+
+        .help { font-size: 12px; line-height: 1.45; color: var(--muted); }
+
+        .math {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+            background: rgba(0, 0, 0, .2);
+            padding: 8px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .08);
+        }
+
+        .canvasWrap {
+            background: rgba(0, 0, 0, .22);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 14px;
+            padding: 10px;
+        }
+
+        .miniTitle {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        canvas {
+            width: 100%;
+            display: block;
+            border-radius: 10px;
+            background: #0b1228;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .swatch {
+            width: 12px;
+            height: 12px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, .16);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 6px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+        }
+
+        th {
+            color: var(--muted);
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>
+            Windy Gridworld
+            <span class="tag">Chapter 5 Subpage</span>
+            <span class="tag">SARSA</span>
+            <span class="tag">Control</span>
+        </h1>
+        <nav class="row">
+            <a href="index.html">← Home</a>
+            <a href="td.html">← TD Main</a>
+            <a href="random_walk.html">Random Walk</a>
+        </nav>
+    </header>
+
+    <div class="wrap">
+        <section class="card">
+            <h2>Controls</h2>
+            <div class="body">
+                <div class="col">
+                    <label>Algorithm</label>
+                    <select id="algo">
+                        <option value="sarsa" selected>SARSA (on-policy)</option>
+                        <option value="q">Q-learning (off-policy)</option>
+                    </select>
+                </div>
+
+                <div style="height:10px;"></div>
+
+                <div class="split">
+                    <div class="col">
+                        <label>Episodes / batch</label>
+                        <input id="episodes" type="number" min="1" max="5000" value="20" />
+                    </div>
+                    <div class="col">
+                        <label>Auto-play speed (ms)</label>
+                        <input id="speed" type="number" min="100" max="5000" value="450" />
+                    </div>
+                </div>
+
+                <div style="height:10px;"></div>
+
+                <div class="split">
+                    <div class="col">
+                        <label>Step size alpha <span class="kbd" id="alphaVal">0.50</span></label>
+                        <input id="alpha" type="range" min="0.05" max="1" step="0.05" value="0.5" />
+                    </div>
+                    <div class="col">
+                        <label>Exploration epsilon <span class="kbd" id="epsVal">0.10</span></label>
+                        <input id="eps" type="range" min="0.01" max="0.5" step="0.01" value="0.1" />
+                    </div>
+                </div>
+
+                <div style="height:10px;"></div>
+
+                <div class="row">
+                    <button class="btn primary" id="reset">Reset</button>
+                    <button class="btn" id="run">Run batch</button>
+                    <button class="btn" id="play">Play</button>
+                    <button class="btn danger" id="stop">Stop</button>
+                </div>
+
+                <div style="margin-top:12px;">
+                    <div class="chips">
+                        <div class="chip">episodes: <b id="episodeChip">0</b></div>
+                        <div class="chip">last steps: <b id="stepsChip">-</b></div>
+                        <div class="chip">best steps: <b id="bestChip">-</b></div>
+                    </div>
+                </div>
+            </div>
+
+            <h2>Environment</h2>
+            <div class="body">
+                <div class="help">
+                    7x10 grid. Start is S=(3,0), goal is G=(3,7). Actions are up/down/left/right.
+                    Each step gives reward -1. Wind pushes upward by column strengths [0,0,0,1,1,1,2,2,1,0].
+                </div>
+                <div style="height:10px;"></div>
+                <div class="math">SARSA: Q(s,a) <- Q(s,a) + alpha [r + gamma Q(s',a') - Q(s,a)]</div>
+                <div style="height:8px;"></div>
+                <div class="math">Q-learning: Q(s,a) <- Q(s,a) + alpha [r + gamma max_a' Q(s',a') - Q(s,a)]</div>
+            </div>
+
+            <h2>Last trajectory</h2>
+            <div class="body">
+                <div class="help" id="trajHint">Run at least one episode to inspect the path to goal.</div>
+                <div style="height:10px;"></div>
+                <table id="trajTable">
+                    <thead>
+                        <tr>
+                            <th>step</th>
+                            <th>state</th>
+                            <th>action</th>
+                            <th>next</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Visualization</h2>
+            <div class="body">
+                <div class="canvasWrap">
+                    <div class="miniTitle"><span>Grid policy</span> <b>Greedy arrows + last path</b></div>
+                    <canvas id="gridCanvas" width="1000" height="540"></canvas>
+                    <div class="legend">
+                        <span><span class="swatch" style="background:#1c274f"></span> low value</span>
+                        <span><span class="swatch" style="background:#7aa2ff"></span> mid value</span>
+                        <span><span class="swatch" style="background:#76f7c4"></span> high value</span>
+                        <span><span class="swatch" style="background:#ffcc66"></span> last trajectory</span>
+                    </div>
+                </div>
+
+                <div style="height:12px;"></div>
+
+                <div class="canvasWrap">
+                    <div class="miniTitle"><span>Learning curve</span> <b>Steps per episode</b></div>
+                    <canvas id="stepsCanvas" width="1000" height="260" style="height:260px;"></canvas>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const ROWS = 7;
+        const COLS = 10;
+        const START = { r: 3, c: 0 };
+        const GOAL = { r: 3, c: 7 };
+        const WIND = [0, 0, 0, 1, 1, 1, 2, 2, 1, 0];
+        const ACTIONS = [
+            { dr: -1, dc: 0, label: "U", arrow: "↑" },
+            { dr: 1, dc: 0, label: "D", arrow: "↓" },
+            { dr: 0, dc: -1, label: "L", arrow: "←" },
+            { dr: 0, dc: 1, label: "R", arrow: "→" }
+        ];
+        const GAMMA = 1;
+        const MAX_STEPS = 300;
+
+        const algoEl = document.getElementById("algo");
+        const episodesEl = document.getElementById("episodes");
+        const speedEl = document.getElementById("speed");
+        const alphaEl = document.getElementById("alpha");
+        const epsEl = document.getElementById("eps");
+        const alphaVal = document.getElementById("alphaVal");
+        const epsVal = document.getElementById("epsVal");
+
+        const episodeChip = document.getElementById("episodeChip");
+        const stepsChip = document.getElementById("stepsChip");
+        const bestChip = document.getElementById("bestChip");
+        const trajHint = document.getElementById("trajHint");
+        const trajTable = document.getElementById("trajTable").querySelector("tbody");
+
+        const gridCanvas = document.getElementById("gridCanvas");
+        const gridCtx = gridCanvas.getContext("2d");
+        const stepsCanvas = document.getElementById("stepsCanvas");
+        const stepsCtx = stepsCanvas.getContext("2d");
+
+        let Q = [];
+        let episodeCount = 0;
+        let stepsHistory = [];
+        let bestSteps = Infinity;
+        let lastTrajectory = [];
+        let timer = null;
+
+        function makeQ() {
+            return Array.from({ length: ROWS }, () => Array.from({ length: COLS }, () => [0, 0, 0, 0]));
+        }
+
+        function resetAll() {
+            Q = makeQ();
+            episodeCount = 0;
+            stepsHistory = [];
+            bestSteps = Infinity;
+            lastTrajectory = [];
+            episodeChip.textContent = "0";
+            stepsChip.textContent = "-";
+            bestChip.textContent = "-";
+            trajHint.textContent = "Run at least one episode to inspect the path to goal.";
+            renderTrajectory();
+            draw();
+        }
+
+        function clamp(v, lo, hi) {
+            return Math.max(lo, Math.min(hi, v));
+        }
+
+        function isGoal(s) {
+            return s.r === GOAL.r && s.c === GOAL.c;
+        }
+
+        function step(state, actionIdx) {
+            const a = ACTIONS[actionIdx];
+            let r = state.r + a.dr;
+            let c = state.c + a.dc;
+            r -= WIND[state.c];
+            r = clamp(r, 0, ROWS - 1);
+            c = clamp(c, 0, COLS - 1);
+            return { r, c, reward: -1 };
+        }
+
+        function argmax(values) {
+            let best = -Infinity;
+            const ties = [];
+            for (let i = 0; i < values.length; i += 1) {
+                if (values[i] > best) {
+                    best = values[i];
+                    ties.length = 0;
+                    ties.push(i);
+                } else if (values[i] === best) {
+                    ties.push(i);
+                }
+            }
+            return ties[Math.floor(Math.random() * ties.length)];
+        }
+
+        function epsilonGreedy(state, eps) {
+            if (Math.random() < eps) return Math.floor(Math.random() * ACTIONS.length);
+            return argmax(Q[state.r][state.c]);
+        }
+
+        function runEpisode() {
+            const alpha = parseFloat(alphaEl.value);
+            const eps = parseFloat(epsEl.value);
+            const algo = algoEl.value;
+
+            let s = { r: START.r, c: START.c };
+            let a = epsilonGreedy(s, eps);
+            const path = [{ r: s.r, c: s.c }];
+            const transitions = [];
+            let steps = 0;
+
+            while (!isGoal(s) && steps < MAX_STEPS) {
+                const out = step(s, a);
+                const s2 = { r: out.r, c: out.c };
+                const reward = out.reward;
+                let tdTarget = reward;
+                let a2 = 0;
+
+                if (!isGoal(s2)) {
+                    if (algo === "sarsa") {
+                        a2 = epsilonGreedy(s2, eps);
+                        tdTarget += GAMMA * Q[s2.r][s2.c][a2];
+                    } else {
+                        tdTarget += GAMMA * Math.max(...Q[s2.r][s2.c]);
+                        a2 = epsilonGreedy(s2, eps);
+                    }
+                }
+
+                const tdError = tdTarget - Q[s.r][s.c][a];
+                Q[s.r][s.c][a] += alpha * tdError;
+
+                transitions.push({ s: { r: s.r, c: s.c }, a, s2: { r: s2.r, c: s2.c } });
+                s = s2;
+                a = a2;
+                path.push({ r: s.r, c: s.c });
+                steps += 1;
+            }
+
+            episodeCount += 1;
+            stepsHistory.push(steps);
+            bestSteps = Math.min(bestSteps, steps);
+            lastTrajectory = transitions;
+            episodeChip.textContent = String(episodeCount);
+            stepsChip.textContent = String(steps);
+            bestChip.textContent = String(bestSteps);
+            trajHint.textContent = isGoal(s)
+                ? `Episode ${episodeCount}: reached goal in ${steps} steps.`
+                : `Episode ${episodeCount}: step cap (${MAX_STEPS}) reached before goal.`;
+            renderTrajectory();
+            draw(path);
+        }
+
+        function stateValue(r, c) {
+            return Math.max(...Q[r][c]);
+        }
+
+        function colorForValue(v, lo, hi) {
+            if (hi - lo < 1e-8) return "rgb(42,56,108)";
+            const t = (v - lo) / (hi - lo);
+            const r = Math.round(28 + t * 90);
+            const g = Math.round(39 + t * 190);
+            const b = Math.round(79 + t * 120);
+            return `rgb(${r},${g},${b})`;
+        }
+
+        function drawGrid(path) {
+            const ctx = gridCtx;
+            const w = gridCanvas.width;
+            const h = gridCanvas.height;
+            ctx.clearRect(0, 0, w, h);
+
+            const pad = 24;
+            const cell = Math.min((w - pad * 2) / COLS, (h - pad * 2) / ROWS);
+            const ox = (w - cell * COLS) / 2;
+            const oy = (h - cell * ROWS) / 2;
+
+            let lo = Infinity;
+            let hi = -Infinity;
+            for (let r = 0; r < ROWS; r += 1) {
+                for (let c = 0; c < COLS; c += 1) {
+                    const v = stateValue(r, c);
+                    lo = Math.min(lo, v);
+                    hi = Math.max(hi, v);
+                }
+            }
+
+            for (let r = 0; r < ROWS; r += 1) {
+                for (let c = 0; c < COLS; c += 1) {
+                    const x = ox + c * cell;
+                    const y = oy + r * cell;
+                    const isStart = r === START.r && c === START.c;
+                    const isGoalCell = r === GOAL.r && c === GOAL.c;
+                    const fill = isGoalCell
+                        ? "rgba(118,247,196,0.75)"
+                        : isStart
+                            ? "rgba(255,204,102,0.65)"
+                            : colorForValue(stateValue(r, c), lo, hi);
+
+                    ctx.fillStyle = fill;
+                    ctx.fillRect(x + 1, y + 1, cell - 2, cell - 2);
+                    ctx.strokeStyle = "rgba(255,255,255,0.14)";
+                    ctx.strokeRect(x + 0.5, y + 0.5, cell - 1, cell - 1);
+
+                    ctx.fillStyle = "rgba(10,14,30,0.88)";
+                    ctx.font = `${Math.max(11, Math.floor(cell * 0.24))}px ui-monospace`;
+                    ctx.fillText(String(WIND[c]), x + 6, y + 14);
+
+                    if (!isGoalCell) {
+                        const bestA = argmax(Q[r][c]);
+                        ctx.fillStyle = "rgba(233,238,252,0.9)";
+                        ctx.font = `${Math.max(12, Math.floor(cell * 0.32))}px ui-monospace`;
+                        ctx.textAlign = "center";
+                        ctx.textBaseline = "middle";
+                        ctx.fillText(ACTIONS[bestA].arrow, x + cell / 2, y + cell / 2 + 1);
+                        ctx.textAlign = "left";
+                        ctx.textBaseline = "alphabetic";
+                    }
+                }
+            }
+
+            if (path && path.length > 1) {
+                ctx.strokeStyle = "#ffcc66";
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                path.forEach((p, i) => {
+                    const x = ox + p.c * cell + cell / 2;
+                    const y = oy + p.r * cell + cell / 2;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = "#a9b4d6";
+            ctx.font = "12px ui-monospace";
+            ctx.fillText("Cell corner value = wind strength", ox, oy - 8);
+        }
+
+        function drawSteps() {
+            const w = stepsCanvas.width;
+            const h = stepsCanvas.height;
+            const ctx = stepsCtx;
+            ctx.clearRect(0, 0, w, h);
+
+            const pad = 42;
+            const spanW = w - 2 * pad;
+            const spanH = h - 2 * pad;
+
+            ctx.strokeStyle = "rgba(255,255,255,0.18)";
+            ctx.strokeRect(pad, pad, spanW, spanH);
+
+            if (stepsHistory.length === 0) return;
+
+            const maxSteps = Math.max(...stepsHistory, 1);
+            const xFor = (i) => pad + (spanW * i) / Math.max(1, stepsHistory.length - 1);
+            const yFor = (v) => pad + spanH - (spanH * v) / maxSteps;
+
+            ctx.strokeStyle = "#7aa2ff";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            stepsHistory.forEach((v, i) => {
+                const x = xFor(i);
+                const y = yFor(v);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+
+            ctx.fillStyle = "#a9b4d6";
+            ctx.font = "11px ui-monospace";
+            ctx.fillText(`episodes: ${stepsHistory.length}`, pad + 8, pad + 14);
+            ctx.fillText(`max steps: ${maxSteps}`, pad + 8, pad + 30);
+        }
+
+        function renderTrajectory() {
+            trajTable.innerHTML = "";
+            const rows = lastTrajectory.slice(-24);
+            rows.forEach((t, idx) => {
+                const tr = document.createElement("tr");
+                const s = `(${t.s.r},${t.s.c})`;
+                const s2 = `(${t.s2.r},${t.s2.c})`;
+                tr.innerHTML = `<td>${idx + 1}</td><td>${s}</td><td>${ACTIONS[t.a].label}</td><td>${s2}</td>`;
+                trajTable.appendChild(tr);
+            });
+        }
+
+        function draw(path) {
+            drawGrid(path);
+            drawSteps();
+        }
+
+        function runBatch() {
+            const count = Math.max(1, parseInt(episodesEl.value, 10) || 1);
+            for (let i = 0; i < count; i += 1) {
+                runEpisode();
+            }
+        }
+
+        function stopPlay() {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+        }
+
+        document.getElementById("reset").addEventListener("click", () => {
+            stopPlay();
+            resetAll();
+        });
+
+        document.getElementById("run").addEventListener("click", runBatch);
+
+        document.getElementById("play").addEventListener("click", () => {
+            stopPlay();
+            const speed = Math.max(100, parseInt(speedEl.value, 10) || 450);
+            timer = setInterval(runBatch, speed);
+        });
+
+        document.getElementById("stop").addEventListener("click", stopPlay);
+
+        alphaEl.addEventListener("input", () => {
+            alphaVal.textContent = parseFloat(alphaEl.value).toFixed(2);
+        });
+
+        epsEl.addEventListener("input", () => {
+            epsVal.textContent = parseFloat(epsEl.value).toFixed(2);
+        });
+
+        resetAll();
+    </script>
+</body>
+
+</html>

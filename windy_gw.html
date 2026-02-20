@@ -458,7 +458,7 @@
             return { r, c, reward: -1 };
         }
 
-        function argmax(values) {
+        function argmaxRandomTie(values) {
             let best = -Infinity;
             const ties = [];
             for (let i = 0; i < values.length; i += 1) {
@@ -473,9 +473,21 @@
             return ties[Math.floor(Math.random() * ties.length)];
         }
 
+        function argmaxDeterministic(values) {
+            let best = values[0];
+            let bestIdx = 0;
+            for (let i = 1; i < values.length; i += 1) {
+                if (values[i] > best) {
+                    best = values[i];
+                    bestIdx = i;
+                }
+            }
+            return bestIdx;
+        }
+
         function epsilonGreedy(state, eps) {
             if (Math.random() < eps) return Math.floor(Math.random() * ACTIONS.length);
-            return argmax(Q[state.r][state.c]);
+            return argmaxRandomTie(Q[state.r][state.c]);
         }
 
         function runEpisode() {
@@ -586,7 +598,7 @@
                     ctx.fillText(String(WIND[c]), x + 6, y + 14);
 
                     if (!isGoalCell) {
-                        const bestA = argmax(Q[r][c]);
+                        const bestA = argmaxDeterministic(Q[r][c]);
                         ctx.fillStyle = "rgba(233,238,252,0.9)";
                         ctx.font = `${Math.max(12, Math.floor(cell * 0.32))}px ui-monospace`;
                         ctx.textAlign = "center";

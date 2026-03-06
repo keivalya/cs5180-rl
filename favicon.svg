@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Reinforcement Learning icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f1630"/>
+      <stop offset="100%" stop-color="#1a2550"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="64" height="64" rx="12" fill="url(#bg)"/>
+
+  <g stroke="#2c3f77" stroke-width="1.4" opacity="0.8">
+    <line x1="16" y1="14" x2="16" y2="50"/>
+    <line x1="28" y1="14" x2="28" y2="50"/>
+    <line x1="40" y1="14" x2="40" y2="50"/>
+    <line x1="52" y1="14" x2="52" y2="50"/>
+    <line x1="16" y1="14" x2="52" y2="14"/>
+    <line x1="16" y1="26" x2="52" y2="26"/>
+    <line x1="16" y1="38" x2="52" y2="38"/>
+    <line x1="16" y1="50" x2="52" y2="50"/>
+  </g>
+
+  <circle cx="22" cy="44" r="5" fill="#7aa2ff"/>
+  <rect x="43" y="17" width="8" height="8" rx="2" fill="#76f7c4"/>
+
+  <path d="M22 44 L34 44 L34 32 L46 32 L46 24" fill="none" stroke="#ffcc66" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M43 26 L46 22 L49 26" fill="none" stroke="#ffcc66" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

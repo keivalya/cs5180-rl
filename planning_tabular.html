@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Planning and Learning with Tabular Methods</title>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --text: #e9eefc;
+            --muted: #a9b4d6;
+            --accent: #7aa2ff;
+            --good: #76f7c4;
+            --warn: #ffcc66;
+            --hot: #ff8fb1;
+            --line: #24305a;
+            --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+            background: radial-gradient(1200px 700px at 20% 10%, #1a2550 0%, var(--bg) 60%) fixed;
+            color: var(--text);
+        }
+
+        header {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+            background: rgba(0, 0, 0, .18);
+            position: sticky;
+            top: 0;
+            backdrop-filter: blur(6px);
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        header h1 {
+            font-size: 15px;
+            margin: 0;
+            letter-spacing: .2px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            font-size: 12px;
+            padding: 3px 8px;
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .04);
+            color: var(--muted);
+        }
+
+        nav a {
+            color: var(--muted);
+            text-decoration: none;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .04);
+            font-size: 12px;
+        }
+
+        nav a:hover {
+            background: rgba(255, 255, 255, .08);
+            color: var(--text);
+        }
+
+        .wrap {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 14px;
+            padding: 14px;
+            max-width: 1450px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 1000px) {
+            .wrap {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .col {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .card {
+            background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .03));
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card h2 {
+            margin: 0;
+            padding: 12px 14px;
+            font-size: 13px;
+            letter-spacing: .25px;
+            color: var(--muted);
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(255, 255, 255, .03);
+        }
+
+        .card .body {
+            padding: 12px 14px;
+        }
+
+        .help {
+            font-size: 12px;
+            line-height: 1.45;
+            color: var(--muted);
+        }
+
+        .math {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+            background: rgba(0, 0, 0, .2);
+            padding: 8px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .08);
+        }
+
+        label {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="range"],
+        input[type="number"] {
+            width: 100%;
+        }
+
+        input[type="number"] {
+            padding: 9px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .25);
+            color: var(--text);
+            outline: none;
+        }
+
+        .kbd {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .22);
+            color: var(--text);
+        }
+
+        .btn {
+            padding: 10px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .06);
+            color: var(--text);
+            cursor: pointer;
+            user-select: none;
+            font-weight: 600;
+            letter-spacing: .2px;
+        }
+
+        .btn.primary {
+            background: rgba(122, 162, 255, .18);
+            border-color: rgba(122, 162, 255, .35);
+        }
+
+        .btn.danger {
+            background: rgba(255, 107, 107, .14);
+            border-color: rgba(255, 107, 107, .35);
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chip {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, .25);
+            border: 1px solid rgba(255, 255, 255, .08);
+            color: var(--muted);
+        }
+
+        .canvasWrap {
+            background: rgba(0, 0, 0, .22);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 14px;
+            padding: 10px;
+        }
+
+        .miniTitle {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .policyGrid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        @media (max-width: 900px) {
+            .policyGrid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        canvas {
+            width: 100%;
+            display: block;
+            border-radius: 10px;
+            background: #0b1228;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 6px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+        }
+
+        th {
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .swatch {
+            width: 12px;
+            height: 12px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, .16);
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>
+            Planning and Learning with Tabular Methods
+            <span class="tag">Chapter 8</span>
+            <span class="tag">Dyna-Q</span>
+            <span class="tag">Planning vs No Planning</span>
+        </h1>
+        <nav class="row">
+            <a href="index.html">← Home</a>
+            <a href="td.html">Temporal-Difference</a>
+            <a href="windy_gw.html">Windy Gridworld</a>
+        </nav>
+    </header>
+
+    <div class="wrap">
+        <section class="card">
+            <h2>Controls</h2>
+            <div class="body">
+                <div class="split">
+                    <div class="col">
+                        <label>Episodes / batch</label>
+                        <input id="episodes" type="number" min="1" max="1000" value="5" />
+                    </div>
+                    <div class="col">
+                        <label>Auto-play speed (ms)</label>
+                        <input id="speed" type="number" min="100" max="5000" value="400" />
+                    </div>
+                </div>
+
+                <div style="height:10px;"></div>
+
+                <div class="split">
+                    <div class="col">
+                        <label>Planning updates / real step <span class="kbd" id="planVal">8</span></label>
+                        <input id="planningSteps" type="range" min="0" max="30" step="1" value="8" />
+                    </div>
+                    <div class="col">
+                        <label>Epsilon exploration <span class="kbd" id="epsVal">0.10</span></label>
+                        <input id="epsilon" type="range" min="0.01" max="0.40" step="0.01" value="0.10" />
+                    </div>
+                </div>
+
+                <div style="height:10px;"></div>
+
+                <div class="split">
+                    <div class="col">
+                        <label>Alpha <span class="kbd" id="alphaVal">0.20</span></label>
+                        <input id="alpha" type="range" min="0.01" max="0.50" step="0.01" value="0.20" />
+                    </div>
+                    <div class="col">
+                        <label>Gamma <span class="kbd" id="gammaVal">0.95</span></label>
+                        <input id="gamma" type="range" min="0.80" max="0.99" step="0.01" value="0.95" />
+                    </div>
+                </div>
+
+                <div style="height:10px;"></div>
+
+                <div class="row">
+                    <button class="btn primary" id="reset">Reset</button>
+                    <button class="btn" id="run">Run batch</button>
+                    <button class="btn" id="play">Play</button>
+                    <button class="btn danger" id="stop">Stop</button>
+                </div>
+
+                <div style="margin-top:12px;">
+                    <div class="chips">
+                        <div class="chip">episodes: <b id="episodeChip">0</b></div>
+                        <div class="chip">Q-learning last steps: <b id="qStepsChip">-</b></div>
+                        <div class="chip">Dyna-Q last steps: <b id="dynaStepsChip">-</b></div>
+                        <div class="chip">speedup: <b id="gainChip">-</b></div>
+                    </div>
+                </div>
+            </div>
+
+            <h2>Cheat Sheet</h2>
+            <div class="body">
+                <div class="help">
+                    Both agents act in the same maze from start S to goal G.
+                    Q-learning updates only from real transitions, while Dyna-Q also uses model-simulated planning updates.
+                </div>
+                <div style="height:10px;"></div>
+                <div class="math">Real update: Q(S,A) &larr; Q(S,A) + alpha [R + gamma max_a Q(S',a) - Q(S,A)]</div>
+                <div style="height:8px;"></div>
+                <div class="math">Dyna-Q: after each real step, sample n model transitions and apply the same Q update.</div>
+            </div>
+
+            <h2>Recent episodes</h2>
+            <div class="body">
+                <div class="help" id="episodeHint">Run some episodes to compare sample efficiency.</div>
+                <div style="height:10px;"></div>
+                <table id="logTable">
+                    <thead>
+                        <tr>
+                            <th>ep</th>
+                            <th>Q-learning steps</th>
+                            <th>Dyna-Q steps</th>
+                            <th>Dyna gain</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Visualization</h2>
+            <div class="body">
+                <div class="policyGrid">
+                    <div class="canvasWrap">
+                        <div class="miniTitle"><span>Greedy policy map</span> <b>Q-learning</b></div>
+                        <canvas id="qPolicyCanvas" width="560" height="420"></canvas>
+                    </div>
+                    <div class="canvasWrap">
+                        <div class="miniTitle"><span>Greedy policy map</span> <b>Dyna-Q</b></div>
+                        <canvas id="dynaPolicyCanvas" width="560" height="420"></canvas>
+                    </div>
+                </div>
+
+                <div style="height:12px;"></div>
+
+                <div class="canvasWrap">
+                    <div class="miniTitle"><span>Learning curve</span> <b>Steps-to-goal by episode (lower is better)</b></div>
+                    <canvas id="curveCanvas" width="1120" height="310" style="height:310px;"></canvas>
+                    <div class="legend">
+                        <span><span class="swatch" style="background:#7aa2ff"></span> Q-learning</span>
+                        <span><span class="swatch" style="background:#ff8fb1"></span> Dyna-Q</span>
+                        <span><span class="swatch" style="background:#76f7c4"></span> moving average (Dyna-Q)</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const ROWS = 6;
+        const COLS = 9;
+        const START = { r: 5, c: 0 };
+        const GOAL = { r: 0, c: 8 };
+        const ACTIONS = [
+            { dr: -1, dc: 0, glyph: "↑" },
+            { dr: 0, dc: 1, glyph: "→" },
+            { dr: 1, dc: 0, glyph: "↓" },
+            { dr: 0, dc: -1, glyph: "←" }
+        ];
+        const STEP_COST = -0.01;
+        const GOAL_REWARD = 1.0;
+        const MAX_STEPS_EPISODE = 350;
+
+        const WALLS = new Set([
+            "2,1", "2,2", "2,3", "2,5", "2,6", "2,7",
+            "4,2", "4,3", "4,4", "4,5", "4,6"
+        ]);
+
+        const episodesEl = document.getElementById("episodes");
+        const speedEl = document.getElementById("speed");
+        const planningEl = document.getElementById("planningSteps");
+        const epsilonEl = document.getElementById("epsilon");
+        const alphaEl = document.getElementById("alpha");
+        const gammaEl = document.getElementById("gamma");
+
+        const planVal = document.getElementById("planVal");
+        const epsVal = document.getElementById("epsVal");
+        const alphaVal = document.getElementById("alphaVal");
+        const gammaVal = document.getElementById("gammaVal");
+
+        const episodeChip = document.getElementById("episodeChip");
+        const qStepsChip = document.getElementById("qStepsChip");
+        const dynaStepsChip = document.getElementById("dynaStepsChip");
+        const gainChip = document.getElementById("gainChip");
+        const episodeHint = document.getElementById("episodeHint");
+
+        const logTable = document.getElementById("logTable").querySelector("tbody");
+        const qPolicyCanvas = document.getElementById("qPolicyCanvas");
+        const dynaPolicyCanvas = document.getElementById("dynaPolicyCanvas");
+        const curveCanvas = document.getElementById("curveCanvas");
+        const qCtx = qPolicyCanvas.getContext("2d");
+        const dynaCtx = dynaPolicyCanvas.getContext("2d");
+        const curveCtx = curveCanvas.getContext("2d");
+
+        let timer = null;
+        let episodeCount = 0;
+        let qAgent = null;
+        let dynaAgent = null;
+        let qStepsSeries = [];
+        let dynaStepsSeries = [];
+        let logs = [];
+
+        function key(r, c) {
+            return `${r},${c}`;
+        }
+
+        function parseKey(k) {
+            const [r, c] = k.split(",").map((x) => parseInt(x, 10));
+            return { r, c };
+        }
+
+        function isWall(r, c) {
+            return WALLS.has(key(r, c));
+        }
+
+        function isGoal(state) {
+            return state.r === GOAL.r && state.c === GOAL.c;
+        }
+
+        function inBounds(r, c) {
+            return r >= 0 && r < ROWS && c >= 0 && c < COLS;
+        }
+
+        function envStep(state, action) {
+            const candR = state.r + ACTIONS[action].dr;
+            const candC = state.c + ACTIONS[action].dc;
+            let next = state;
+            if (inBounds(candR, candC) && !isWall(candR, candC)) {
+                next = { r: candR, c: candC };
+            }
+            if (isGoal(next)) {
+                return { next, reward: GOAL_REWARD, done: true };
+            }
+            return { next, reward: STEP_COST, done: false };
+        }
+
+        function createAgent(name, planningSteps) {
+            return {
+                name,
+                planningSteps,
+                q: new Map(),
+                model: new Map(),
+                modelKeys: []
+            };
+        }
+
+        function getQ(agent, state) {
+            const k = key(state.r, state.c);
+            if (!agent.q.has(k)) {
+                agent.q.set(k, [0, 0, 0, 0]);
+            }
+            return agent.q.get(k);
+        }
+
+        function maxQ(agent, state) {
+            if (isGoal(state)) return 0;
+            const arr = getQ(agent, state);
+            return Math.max(arr[0], arr[1], arr[2], arr[3]);
+        }
+
+        function greedyAction(agent, state) {
+            const arr = getQ(agent, state);
+            let bestA = 0;
+            let bestV = arr[0];
+            for (let a = 1; a < 4; a += 1) {
+                if (arr[a] > bestV) {
+                    bestV = arr[a];
+                    bestA = a;
+                }
+            }
+            return bestA;
+        }
+
+        function epsilonGreedy(agent, state, epsilon) {
+            if (Math.random() < epsilon) {
+                return Math.floor(Math.random() * 4);
+            }
+            return greedyAction(agent, state);
+        }
+
+        function tdUpdate(agent, state, action, reward, next, done, alpha, gamma) {
+            const arr = getQ(agent, state);
+            const bootstrap = done ? 0 : maxQ(agent, next);
+            const target = reward + gamma * bootstrap;
+            arr[action] += alpha * (target - arr[action]);
+        }
+
+        function updateModel(agent, state, action, reward, next) {
+            const sa = `${key(state.r, state.c)}|${action}`;
+            if (!agent.model.has(sa)) {
+                agent.modelKeys.push(sa);
+            }
+            agent.model.set(sa, {
+                reward,
+                nextKey: key(next.r, next.c)
+            });
+        }
+
+        function planningSweep(agent, alpha, gamma) {
+            const n = agent.planningSteps;
+            if (n <= 0 || agent.modelKeys.length === 0) return;
+            for (let i = 0; i < n; i += 1) {
+                const pick = agent.modelKeys[Math.floor(Math.random() * agent.modelKeys.length)];
+                const [stateKey, actionStr] = pick.split("|");
+                const action = parseInt(actionStr, 10);
+                const state = parseKey(stateKey);
+                const transition = agent.model.get(pick);
+                const next = parseKey(transition.nextKey);
+                const done = isGoal(next);
+                tdUpdate(agent, state, action, transition.reward, next, done, alpha, gamma);
+            }
+        }
+
+        function runEpisode(agent, alpha, gamma, epsilon) {
+            let state = { r: START.r, c: START.c };
+            let steps = 0;
+
+            while (!isGoal(state) && steps < MAX_STEPS_EPISODE) {
+                const action = epsilonGreedy(agent, state, epsilon);
+                const tr = envStep(state, action);
+
+                tdUpdate(agent, state, action, tr.reward, tr.next, tr.done, alpha, gamma);
+                updateModel(agent, state, action, tr.reward, tr.next);
+                planningSweep(agent, alpha, gamma);
+
+                state = tr.next;
+                steps += 1;
+                if (tr.done) break;
+            }
+
+            return steps;
+        }
+
+        function movingAverage(arr, k) {
+            if (arr.length === 0) return [];
+            const out = [];
+            let acc = 0;
+            for (let i = 0; i < arr.length; i += 1) {
+                acc += arr[i];
+                if (i >= k) acc -= arr[i - k];
+                const denom = Math.min(k, i + 1);
+                out.push(acc / denom);
+            }
+            return out;
+        }
+
+        function resetAll() {
+            stopPlay();
+            episodeCount = 0;
+            qStepsSeries = [];
+            dynaStepsSeries = [];
+            logs = [];
+            qAgent = createAgent("Q-learning", 0);
+            dynaAgent = createAgent("Dyna-Q", parseInt(planningEl.value, 10) || 0);
+
+            episodeChip.textContent = "0";
+            qStepsChip.textContent = "-";
+            dynaStepsChip.textContent = "-";
+            gainChip.textContent = "-";
+            episodeHint.textContent = "Run some episodes to compare sample efficiency.";
+
+            renderLogs();
+            drawAll();
+        }
+
+        function runOnePairEpisode() {
+            const alpha = parseFloat(alphaEl.value);
+            const gamma = parseFloat(gammaEl.value);
+            const epsilon = parseFloat(epsilonEl.value);
+            dynaAgent.planningSteps = parseInt(planningEl.value, 10) || 0;
+
+            const qSteps = runEpisode(qAgent, alpha, gamma, epsilon);
+            const dSteps = runEpisode(dynaAgent, alpha, gamma, epsilon);
+
+            episodeCount += 1;
+            qStepsSeries.push(qSteps);
+            dynaStepsSeries.push(dSteps);
+
+            const gain = qSteps > 0 ? ((qSteps - dSteps) / qSteps) * 100 : 0;
+            logs.push({
+                ep: episodeCount,
+                qSteps,
+                dSteps,
+                gain
+            });
+            if (logs.length > 30) logs = logs.slice(logs.length - 30);
+
+            episodeChip.textContent = episodeCount.toString();
+            qStepsChip.textContent = qSteps.toString();
+            dynaStepsChip.textContent = dSteps.toString();
+            gainChip.textContent = `${gain.toFixed(1)}%`;
+            episodeHint.textContent = `Episode ${episodeCount}: Dyna-Q used ${dynaAgent.planningSteps} planning updates per real step.`;
+
+            renderLogs();
+            drawAll();
+        }
+
+        function runBatch() {
+            const count = Math.max(1, parseInt(episodesEl.value, 10) || 1);
+            for (let i = 0; i < count; i += 1) {
+                runOnePairEpisode();
+            }
+        }
+
+        function drawMazePolicy(ctx, agent, titleColor) {
+            const w = ctx.canvas.width;
+            const h = ctx.canvas.height;
+            ctx.clearRect(0, 0, w, h);
+
+            const pad = 20;
+            const cellW = (w - 2 * pad) / COLS;
+            const cellH = (h - 2 * pad) / ROWS;
+            ctx.strokeStyle = "rgba(255,255,255,0.14)";
+            ctx.lineWidth = 1;
+
+            for (let r = 0; r < ROWS; r += 1) {
+                for (let c = 0; c < COLS; c += 1) {
+                    const x = pad + c * cellW;
+                    const y = pad + r * cellH;
+                    const k = key(r, c);
+                    if (isWall(r, c)) {
+                        ctx.fillStyle = "rgba(255,255,255,0.12)";
+                        ctx.fillRect(x, y, cellW, cellH);
+                    } else if (r === START.r && c === START.c) {
+                        ctx.fillStyle = "rgba(122,162,255,0.22)";
+                        ctx.fillRect(x, y, cellW, cellH);
+                    } else if (r === GOAL.r && c === GOAL.c) {
+                        ctx.fillStyle = "rgba(118,247,196,0.22)";
+                        ctx.fillRect(x, y, cellW, cellH);
+                    }
+                    ctx.strokeRect(x, y, cellW, cellH);
+
+                    if (!isWall(r, c) && !(r === GOAL.r && c === GOAL.c)) {
+                        const q = agent.q.get(k) || [0, 0, 0, 0];
+                        const allZero = Math.abs(q[0]) + Math.abs(q[1]) + Math.abs(q[2]) + Math.abs(q[3]) < 1e-9;
+                        ctx.fillStyle = "rgba(233,238,252,0.9)";
+                        ctx.font = `${Math.max(12, Math.floor(cellW * 0.34))}px sans-serif`;
+                        ctx.textAlign = "center";
+                        ctx.textBaseline = "middle";
+                        const cx = x + cellW / 2;
+                        const cy = y + cellH / 2;
+                        if (allZero) {
+                            ctx.fillStyle = "rgba(169,180,214,0.8)";
+                            ctx.fillText("·", cx, cy + 1);
+                        } else {
+                            const a = greedyAction(agent, { r, c });
+                            ctx.fillText(ACTIONS[a].glyph, cx, cy + 1);
+                        }
+                    }
+                }
+            }
+
+            ctx.fillStyle = titleColor;
+            ctx.font = "12px ui-monospace";
+            ctx.textAlign = "left";
+            ctx.fillText("S", pad + START.c * cellW + 6, pad + START.r * cellH + 14);
+            ctx.fillText("G", pad + GOAL.c * cellW + 6, pad + GOAL.r * cellH + 14);
+        }
+
+        function drawCurve() {
+            const w = curveCanvas.width;
+            const h = curveCanvas.height;
+            curveCtx.clearRect(0, 0, w, h);
+
+            const pad = 44;
+            const spanW = w - pad * 2;
+            const spanH = h - pad * 2;
+            curveCtx.strokeStyle = "rgba(255,255,255,0.18)";
+            curveCtx.strokeRect(pad, pad, spanW, spanH);
+
+            if (qStepsSeries.length === 0) return;
+
+            const len = qStepsSeries.length;
+            const dynaAvg = movingAverage(dynaStepsSeries, 10);
+            const maxY = Math.max(10, ...qStepsSeries, ...dynaStepsSeries) * 1.08;
+            const xFor = (i) => pad + (spanW * i) / Math.max(1, len - 1);
+            const yFor = (v) => pad + spanH - (spanH * v) / maxY;
+
+            function plot(series, color, width) {
+                curveCtx.strokeStyle = color;
+                curveCtx.lineWidth = width;
+                curveCtx.beginPath();
+                series.forEach((v, i) => {
+                    const x = xFor(i);
+                    const y = yFor(v);
+                    if (i === 0) curveCtx.moveTo(x, y);
+                    else curveCtx.lineTo(x, y);
+                });
+                curveCtx.stroke();
+            }
+
+            plot(qStepsSeries, "#7aa2ff", 1.8);
+            plot(dynaStepsSeries, "#ff8fb1", 1.8);
+            plot(dynaAvg, "#76f7c4", 2.2);
+
+            curveCtx.fillStyle = "#a9b4d6";
+            curveCtx.font = "11px ui-monospace";
+            curveCtx.fillText(`episodes: ${len}`, pad + 8, pad + 14);
+            curveCtx.fillText(`max steps: ${Math.round(maxY)}`, pad + 8, pad + 30);
+        }
+
+        function renderLogs() {
+            logTable.innerHTML = "";
+            logs.slice().reverse().forEach((entry) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `<td>${entry.ep}</td><td>${entry.qSteps}</td><td>${entry.dSteps}</td><td>${entry.gain.toFixed(1)}%</td>`;
+                logTable.appendChild(tr);
+            });
+        }
+
+        function drawAll() {
+            drawMazePolicy(qCtx, qAgent, "#7aa2ff");
+            drawMazePolicy(dynaCtx, dynaAgent, "#ff8fb1");
+            drawCurve();
+        }
+
+        function stopPlay() {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+        }
+
+        document.getElementById("reset").addEventListener("click", resetAll);
+        document.getElementById("run").addEventListener("click", runBatch);
+        document.getElementById("play").addEventListener("click", () => {
+            stopPlay();
+            const speed = Math.max(100, parseInt(speedEl.value, 10) || 400);
+            timer = setInterval(() => {
+                runBatch();
+            }, speed);
+        });
+        document.getElementById("stop").addEventListener("click", stopPlay);
+
+        planningEl.addEventListener("input", () => {
+            planVal.textContent = (parseInt(planningEl.value, 10) || 0).toString();
+        });
+        epsilonEl.addEventListener("input", () => {
+            epsVal.textContent = parseFloat(epsilonEl.value).toFixed(2);
+        });
+        alphaEl.addEventListener("input", () => {
+            alphaVal.textContent = parseFloat(alphaEl.value).toFixed(2);
+        });
+        gammaEl.addEventListener("input", () => {
+            gammaVal.textContent = parseFloat(gammaEl.value).toFixed(2);
+        });
+
+        resetAll();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Eligibility Traces</title>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --text: #e9eefc;
+            --muted: #a9b4d6;
+            --accent: #7aa2ff;
+            --good: #76f7c4;
+            --warn: #ffcc66;
+            --hot: #ff8fb1;
+            --line: #24305a;
+            --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+            background: radial-gradient(1200px 700px at 20% 10%, #1a2550 0%, var(--bg) 60%) fixed;
+            color: var(--text);
+        }
+
+        header {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, .06);
+            background: rgba(0, 0, 0, .18);
+            position: sticky;
+            top: 0;
+            backdrop-filter: blur(6px);
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        header h1 {
+            font-size: 15px;
+            margin: 0;
+            letter-spacing: .2px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            font-size: 12px;
+            padding: 3px 8px;
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, .04);
+            color: var(--muted);
+        }
+
+        nav a {
+            color: var(--muted);
+            text-decoration: none;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .04);
+            font-size: 12px;
+        }
+
+        nav a:hover {
+            background: rgba(255, 255, 255, .08);
+            color: var(--text);
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .wrap {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 14px;
+            padding: 14px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 1000px) {
+            .wrap {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .03));
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card h2 {
+            margin: 0;
+            padding: 12px 14px;
+            font-size: 13px;
+            letter-spacing: .25px;
+            color: var(--muted);
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+            background: rgba(255, 255, 255, .03);
+        }
+
+        .card .body {
+            padding: 12px 14px;
+        }
+
+        .col {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        label {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="range"],
+        input[type="number"],
+        select {
+            width: 100%;
+        }
+
+        input[type="number"],
+        select {
+            padding: 9px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .25);
+            color: var(--text);
+            outline: none;
+        }
+
+        .kbd {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(0, 0, 0, .22);
+            color: var(--text);
+        }
+
+        .btn {
+            padding: 10px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, .10);
+            background: rgba(255, 255, 255, .06);
+            color: var(--text);
+            cursor: pointer;
+            user-select: none;
+            font-weight: 600;
+            letter-spacing: .2px;
+        }
+
+        .btn.primary {
+            background: rgba(122, 162, 255, .18);
+            border-color: rgba(122, 162, 255, .35);
+        }
+
+        .btn.danger {
+            background: rgba(255, 107, 107, .14);
+            border-color: rgba(255, 107, 107, .35);
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chip {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, .25);
+            border: 1px solid rgba(255, 255, 255, .08);
+            color: var(--muted);
+        }
+
+        .help {
+            font-size: 12px;
+            line-height: 1.45;
+            color: var(--muted);
+        }
+
+        .math {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+            background: rgba(0, 0, 0, .2);
+            padding: 8px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, .08);
+        }
+
+        .canvasWrap {
+            background: rgba(0, 0, 0, .22);
+            border: 1px solid rgba(255, 255, 255, .08);
+            border-radius: 14px;
+            padding: 10px;
+        }
+
+        .miniTitle {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        canvas {
+            width: 100%;
+            display: block;
+            border-radius: 10px;
+            background: #0b1228;
+        }
+
+        .legend {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            color: var(--muted);
+            margin: 6px 0 2px;
+        }
+
+        .swatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+            display: inline-block;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 6px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+            vertical-align: top;
+        }
+
+        th {
+            color: var(--muted);
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>
+            Eligibility Traces
+            <span class="tag">Chapter 12</span>
+            <span class="tag">Random Walk</span>
+            <span class="tag">TD(0) vs TD(lambda)</span>
+        </h1>
+        <nav class="row">
+            <a href="index.html">Home</a>
+            <a href="td.html">TD</a>
+            <a href="n_step_bootstrapping.html">n-step</a>
+        </nav>
+    </header>
+
+    <div class="wrap">
+        <section class="card">
+            <h2>Controls</h2>
+            <div class="body">
+                <div class="split">
+                    <div class="col">
+                        <label>Episodes per run</label>
+                        <input id="episodes" type="number" min="1" max="10000" value="50" />
+                    </div>
+                    <div class="col">
+                        <label>Play speed (ms)</label>
+                        <input id="speed" type="number" min="100" max="4000" step="50" value="450" />
+                    </div>
+                </div>
+
+                <div class="split" style="margin-top:8px;">
+                    <div class="col">
+                        <label>Discount gamma <span class="kbd" id="gammaVal">1.00</span></label>
+                        <input id="gamma" type="range" min="0.80" max="1.00" step="0.01" value="1.00" />
+                    </div>
+                    <div class="col">
+                        <label>Trace decay lambda <span class="kbd" id="lambdaVal">0.80</span></label>
+                        <input id="lambda" type="range" min="0.00" max="1.00" step="0.01" value="0.80" />
+                    </div>
+                </div>
+
+                <div class="split" style="margin-top:8px;">
+                    <div class="col">
+                        <label>TD(0) alpha <span class="kbd" id="alphaTdVal">0.10</span></label>
+                        <input id="alphaTd" type="range" min="0.01" max="0.60" step="0.01" value="0.10" />
+                    </div>
+                    <div class="col">
+                        <label>TD(lambda) alpha <span class="kbd" id="alphaLambdaVal">0.15</span></label>
+                        <input id="alphaLambda" type="range" min="0.01" max="0.60" step="0.01" value="0.15" />
+                    </div>
+                </div>
+
+                <div class="col" style="margin-top:8px;">
+                    <label>Trace type</label>
+                    <select id="traceType">
+                        <option value="accumulating">Accumulating traces</option>
+                        <option value="replacing">Replacing traces</option>
+                    </select>
+                </div>
+
+                <div class="row" style="margin-top:10px;">
+                    <button class="btn primary" id="reset">Reset</button>
+                    <button class="btn" id="run">Run batch</button>
+                    <button class="btn" id="play">Play</button>
+                    <button class="btn danger" id="stop">Stop</button>
+                </div>
+
+                <div class="chips" style="margin-top:10px;">
+                    <div class="chip">episodes: <b id="episodeChip">0</b></div>
+                    <div class="chip">RMSE TD(0): <b id="rmseTdChip">-</b></div>
+                    <div class="chip">RMSE TD(lambda): <b id="rmseLambdaChip">-</b></div>
+                </div>
+            </div>
+
+            <h2>Update Equations</h2>
+            <div class="body">
+                <div class="math">delta_t = R_(t+1) + gamma V(S_(t+1)) - V(S_t)</div>
+                <div class="math" style="margin-top:8px;">e_t(s) = gamma lambda e_(t-1)(s), then increment visited state</div>
+                <div class="math" style="margin-top:8px;">V(s) &larr; V(s) + alpha delta_t e_t(s)</div>
+                <div class="help" style="margin-top:8px;">
+                    With <span class="kbd">lambda = 0</span>, TD(lambda) behaves like TD(0). With <span class="kbd">lambda = 1</span>, updates look more Monte Carlo-like.
+                </div>
+            </div>
+
+            <h2>Last Episode Trace View</h2>
+            <div class="body">
+                <div class="help" id="traceHint">Run one episode to inspect TD errors and eligibility traces.</div>
+                <div style="max-height:300px; overflow:auto; margin-top:8px;">
+                    <table id="traceTable">
+                        <thead>
+                            <tr>
+                                <th>t</th>
+                                <th>S_t</th>
+                                <th>S_t+1</th>
+                                <th>R</th>
+                                <th>delta</th>
+                                <th>e(A..E)</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Visualization</h2>
+            <div class="body" style="display:grid; gap:10px;">
+                <div class="canvasWrap">
+                    <div class="miniTitle"><span>State values (A-E)</span> <b>True vs TD(0) vs TD(lambda)</b></div>
+                    <canvas id="valueCanvas" width="900" height="300"></canvas>
+                    <div class="legend">
+                        <span><span class="swatch" style="background:#76f7c4"></span>true values</span>
+                        <span><span class="swatch" style="background:#7aa2ff"></span>TD(0)</span>
+                        <span><span class="swatch" style="background:#ff8fb1"></span>TD(lambda)</span>
+                    </div>
+                </div>
+
+                <div class="canvasWrap">
+                    <div class="miniTitle"><span>Learning curve</span> <b>RMSE by episode</b></div>
+                    <canvas id="rmseCanvas" width="900" height="250"></canvas>
+                </div>
+
+                <div class="canvasWrap">
+                    <div class="miniTitle"><span>Final eligibility traces</span> <b>End of latest episode</b></div>
+                    <canvas id="traceCanvas" width="900" height="220"></canvas>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const STATES = ["L", "A", "B", "C", "D", "E", "R"];
+        const NON_TERMINAL = [1, 2, 3, 4, 5];
+        const TRUE_VALUES = [0, 1 / 6, 2 / 6, 3 / 6, 4 / 6, 5 / 6, 1];
+
+        const episodesEl = document.getElementById("episodes");
+        const speedEl = document.getElementById("speed");
+        const gammaEl = document.getElementById("gamma");
+        const lambdaEl = document.getElementById("lambda");
+        const alphaTdEl = document.getElementById("alphaTd");
+        const alphaLambdaEl = document.getElementById("alphaLambda");
+        const traceTypeEl = document.getElementById("traceType");
+
+        const gammaVal = document.getElementById("gammaVal");
+        const lambdaVal = document.getElementById("lambdaVal");
+        const alphaTdVal = document.getElementById("alphaTdVal");
+        const alphaLambdaVal = document.getElementById("alphaLambdaVal");
+
+        const episodeChip = document.getElementById("episodeChip");
+        const rmseTdChip = document.getElementById("rmseTdChip");
+        const rmseLambdaChip = document.getElementById("rmseLambdaChip");
+        const traceHint = document.getElementById("traceHint");
+        const traceTable = document.getElementById("traceTable").querySelector("tbody");
+
+        const valueCanvas = document.getElementById("valueCanvas");
+        const valueCtx = valueCanvas.getContext("2d");
+        const rmseCanvas = document.getElementById("rmseCanvas");
+        const rmseCtx = rmseCanvas.getContext("2d");
+        const traceCanvas = document.getElementById("traceCanvas");
+        const traceCtx = traceCanvas.getContext("2d");
+
+        let tdValues = [];
+        let lambdaValues = [];
+        let episodeCount = 0;
+        let rmseTd = [];
+        let rmseLambda = [];
+        let lastTraceSteps = [];
+        let lastFinalTraces = [0, 0, 0, 0, 0, 0, 0];
+        let timer = null;
+
+        function resetAll() {
+            tdValues = [0, 0.5, 0.5, 0.5, 0.5, 0.5, 1];
+            lambdaValues = [0, 0.5, 0.5, 0.5, 0.5, 0.5, 1];
+            episodeCount = 0;
+            rmseTd = [];
+            rmseLambda = [];
+            lastTraceSteps = [];
+            lastFinalTraces = [0, 0, 0, 0, 0, 0, 0];
+
+            episodeChip.textContent = "0";
+            rmseTdChip.textContent = "-";
+            rmseLambdaChip.textContent = "-";
+            traceHint.textContent = "Run one episode to inspect TD errors and eligibility traces.";
+            renderTraceTable();
+            draw();
+        }
+
+        function stepRandomWalk(state) {
+            return Math.random() < 0.5 ? state - 1 : state + 1;
+        }
+
+        function runEpisode() {
+            const alphaTd = parseFloat(alphaTdEl.value);
+            const alphaLambda = parseFloat(alphaLambdaEl.value);
+            const gamma = parseFloat(gammaEl.value);
+            const lambda = parseFloat(lambdaEl.value);
+            const traceType = traceTypeEl.value;
+
+            let state = 3;
+            const traces = [0, 0, 0, 0, 0, 0, 0];
+            const steps = [];
+            let endedRight = false;
+
+            while (state !== 0 && state !== 6) {
+                const next = stepRandomWalk(state);
+                const reward = next === 6 ? 1 : 0;
+
+                tdValues[state] += alphaTd * (reward + gamma * tdValues[next] - tdValues[state]);
+
+                const delta = reward + gamma * lambdaValues[next] - lambdaValues[state];
+                for (const s of NON_TERMINAL) {
+                    traces[s] *= gamma * lambda;
+                }
+
+                if (traceType === "accumulating") {
+                    traces[state] += 1;
+                } else {
+                    traces[state] = 1;
+                }
+
+                for (const s of NON_TERMINAL) {
+                    lambdaValues[s] += alphaLambda * delta * traces[s];
+                }
+
+                steps.push({
+                    state,
+                    next,
+                    reward,
+                    delta,
+                    traceSnapshot: NON_TERMINAL.map((s) => traces[s])
+                });
+
+                state = next;
+                endedRight = state === 6;
+            }
+
+            episodeCount += 1;
+            rmseTd.push(computeRmse(tdValues));
+            rmseLambda.push(computeRmse(lambdaValues));
+            lastTraceSteps = steps;
+            lastFinalTraces = traces.slice();
+
+            episodeChip.textContent = episodeCount.toString();
+            rmseTdChip.textContent = rmseTd[rmseTd.length - 1].toFixed(4);
+            rmseLambdaChip.textContent = rmseLambda[rmseLambda.length - 1].toFixed(4);
+            traceHint.textContent = `Episode ${episodeCount} ended at ${endedRight ? "right terminal (reward 1)" : "left terminal (reward 0)"}.`;
+
+            renderTraceTable();
+            draw();
+        }
+
+        function computeRmse(values) {
+            let sumSq = 0;
+            for (const s of NON_TERMINAL) {
+                const diff = values[s] - TRUE_VALUES[s];
+                sumSq += diff * diff;
+            }
+            return Math.sqrt(sumSq / NON_TERMINAL.length);
+        }
+
+        function runBatch() {
+            const count = Math.max(1, parseInt(episodesEl.value, 10) || 1);
+            for (let i = 0; i < count; i += 1) {
+                runEpisode();
+            }
+        }
+
+        function drawValues() {
+            const w = valueCanvas.width;
+            const h = valueCanvas.height;
+            valueCtx.clearRect(0, 0, w, h);
+
+            const pad = 60;
+            const spanW = w - pad * 2;
+            const spanH = h - pad * 2;
+            const xFor = (i) => pad + (spanW * i) / (NON_TERMINAL.length - 1);
+            const yFor = (v) => h - pad - spanH * v;
+
+            valueCtx.strokeStyle = "rgba(255,255,255,0.2)";
+            valueCtx.lineWidth = 1;
+            valueCtx.beginPath();
+            valueCtx.moveTo(pad, h - pad);
+            valueCtx.lineTo(w - pad, h - pad);
+            valueCtx.lineTo(w - pad, pad);
+            valueCtx.stroke();
+
+            valueCtx.fillStyle = "#a9b4d6";
+            valueCtx.font = "12px ui-monospace";
+            valueCtx.fillText("0.0", pad - 28, h - pad + 4);
+            valueCtx.fillText("1.0", pad - 28, pad + 4);
+
+            function plot(values, color) {
+                valueCtx.strokeStyle = color;
+                valueCtx.fillStyle = color;
+                valueCtx.lineWidth = 3;
+                valueCtx.beginPath();
+                NON_TERMINAL.forEach((s, i) => {
+                    const x = xFor(i);
+                    const y = yFor(values[s]);
+                    if (i === 0) valueCtx.moveTo(x, y);
+                    else valueCtx.lineTo(x, y);
+                });
+                valueCtx.stroke();
+
+                NON_TERMINAL.forEach((s, i) => {
+                    const x = xFor(i);
+                    const y = yFor(values[s]);
+                    valueCtx.beginPath();
+                    valueCtx.arc(x, y, 4, 0, Math.PI * 2);
+                    valueCtx.fill();
+                });
+            }
+
+            plot(TRUE_VALUES, "#76f7c4");
+            plot(tdValues, "#7aa2ff");
+            plot(lambdaValues, "#ff8fb1");
+
+            NON_TERMINAL.forEach((s, i) => {
+                const x = xFor(i);
+                valueCtx.fillStyle = "#a9b4d6";
+                valueCtx.fillText(STATES[s], x - 4, h - pad + 18);
+            });
+        }
+
+        function drawRmse() {
+            const w = rmseCanvas.width;
+            const h = rmseCanvas.height;
+            rmseCtx.clearRect(0, 0, w, h);
+
+            const pad = 42;
+            const spanW = w - pad * 2;
+            const spanH = h - pad * 2;
+            rmseCtx.strokeStyle = "rgba(255,255,255,0.18)";
+            rmseCtx.strokeRect(pad, pad, spanW, spanH);
+
+            if (rmseTd.length === 0) return;
+
+            const maxLen = rmseTd.length;
+            const maxRmse = Math.max(0.01, ...rmseTd, ...rmseLambda) * 1.1;
+            const xFor = (i) => pad + (spanW * i) / Math.max(1, maxLen - 1);
+            const yFor = (v) => pad + spanH - (spanH * v) / maxRmse;
+
+            function plot(series, color) {
+                rmseCtx.strokeStyle = color;
+                rmseCtx.lineWidth = 2;
+                rmseCtx.beginPath();
+                series.forEach((v, i) => {
+                    const x = xFor(i);
+                    const y = yFor(v);
+                    if (i === 0) rmseCtx.moveTo(x, y);
+                    else rmseCtx.lineTo(x, y);
+                });
+                rmseCtx.stroke();
+            }
+
+            plot(rmseTd, "#7aa2ff");
+            plot(rmseLambda, "#ff8fb1");
+
+            rmseCtx.fillStyle = "#a9b4d6";
+            rmseCtx.font = "11px ui-monospace";
+            rmseCtx.fillText(`episodes: ${maxLen}`, pad + 8, pad + 14);
+            rmseCtx.fillText(`max RMSE: ${maxRmse.toFixed(3)}`, pad + 8, pad + 30);
+        }
+
+        function drawFinalTraceBars() {
+            const w = traceCanvas.width;
+            const h = traceCanvas.height;
+            traceCtx.clearRect(0, 0, w, h);
+
+            const padX = 60;
+            const padY = 30;
+            const barW = 90;
+            const gap = 58;
+            const usableH = h - padY * 2;
+
+            let maxTrace = 0.01;
+            for (const s of NON_TERMINAL) {
+                maxTrace = Math.max(maxTrace, lastFinalTraces[s]);
+            }
+
+            traceCtx.fillStyle = "#a9b4d6";
+            traceCtx.font = "11px ui-monospace";
+            traceCtx.fillText(`max e(s): ${maxTrace.toFixed(3)}`, padX, 16);
+
+            NON_TERMINAL.forEach((s, i) => {
+                const x = padX + i * (barW + gap);
+                const v = lastFinalTraces[s];
+                const bh = Math.max(0, (v / maxTrace) * usableH);
+                const y = h - padY - bh;
+
+                traceCtx.fillStyle = "rgba(255, 255, 255, 0.08)";
+                traceCtx.fillRect(x, padY, barW, usableH);
+
+                traceCtx.fillStyle = "#ffcc66";
+                traceCtx.fillRect(x, y, barW, bh);
+
+                traceCtx.fillStyle = "#a9b4d6";
+                traceCtx.fillText(STATES[s], x + barW / 2 - 4, h - 8);
+                traceCtx.fillText(v.toFixed(2), x + 30, Math.max(24, y - 6));
+            });
+        }
+
+        function renderTraceTable() {
+            traceTable.innerHTML = "";
+            const rows = lastTraceSteps.slice(-24);
+            rows.forEach((step, i) => {
+                const tr = document.createElement("tr");
+                const traceVector = step.traceSnapshot.map((v) => v.toFixed(2)).join(", ");
+                tr.innerHTML = `<td>${i}</td><td>${STATES[step.state]}</td><td>${STATES[step.next]}</td><td>${step.reward}</td><td>${step.delta.toFixed(3)}</td><td>${traceVector}</td>`;
+                traceTable.appendChild(tr);
+            });
+        }
+
+        function draw() {
+            drawValues();
+            drawRmse();
+            drawFinalTraceBars();
+        }
+
+        function stopPlay() {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+        }
+
+        document.getElementById("reset").addEventListener("click", () => {
+            stopPlay();
+            resetAll();
+        });
+
+        document.getElementById("run").addEventListener("click", runBatch);
+
+        document.getElementById("play").addEventListener("click", () => {
+            stopPlay();
+            const speed = Math.max(100, parseInt(speedEl.value, 10) || 450);
+            timer = setInterval(() => {
+                runBatch();
+            }, speed);
+        });
+
+        document.getElementById("stop").addEventListener("click", stopPlay);
+
+        gammaEl.addEventListener("input", () => {
+            gammaVal.textContent = parseFloat(gammaEl.value).toFixed(2);
+        });
+
+        lambdaEl.addEventListener("input", () => {
+            lambdaVal.textContent = parseFloat(lambdaEl.value).toFixed(2);
+        });
+
+        alphaTdEl.addEventListener("input", () => {
+            alphaTdVal.textContent = parseFloat(alphaTdEl.value).toFixed(2);
+        });
+
+        alphaLambdaEl.addEventListener("input", () => {
+            alphaLambdaVal.textContent = parseFloat(alphaLambdaEl.value).toFixed(2);
+        });
+
+        resetAll();
+    </script>
+</body>
+
+</html>
